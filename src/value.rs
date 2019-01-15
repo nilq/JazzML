@@ -1,20 +1,20 @@
-use std::rc::Rc;
+use super::opcodes::Opcode;
+use super::vm::VirtualMachine;
+use std::cell::Ref as SRef;
 use std::cell::RefCell;
 use std::f64;
-use super::vm::VirtualMachine;
-use super::opcodes::Opcode;
-use std::cell::Ref as SRef;
+use std::rc::Rc;
 
 pub type Ref<T> = Rc<RefCell<T>>;
 pub type ValueRef = Ref<Value>;
 pub type ObjectRef = Ref<Object>;
-pub type FuncRef   = Ref<Function>;
+pub type FuncRef = Ref<Function>;
 
 pub const VAR_ARGS: i32 = -1;
 
 #[derive(Clone)]
 pub enum FuncKind {
-    Native(&'static Fn(&mut VirtualMachine,Vec<ValueRef>) -> ValueRef),
+    Native(&'static Fn(&mut VirtualMachine, Vec<ValueRef>) -> ValueRef),
     Interpret(Vec<Opcode>),
 }
 
@@ -25,7 +25,7 @@ pub struct Function {
     pub args: Vec<String>,
 }
 
-#[derive(Clone,Debug,Eq,PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Value {
     Int(i64),
     Float(u64),
@@ -37,10 +37,10 @@ pub enum Value {
     Null,
 }
 
-use std::hash::{Hash,Hasher};
+use std::hash::{Hash, Hasher};
 
 impl Hash for Value {
-    fn hash<H: Hasher>(&self,state: &mut H) {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         use self::Value::*;
         match self {
             Int(i) => i.hash(state),
@@ -63,69 +63,74 @@ impl Hash for Value {
                 }
                 temp.hash(state);
             }
-
         }
     }
 }
 
 impl Value {
-    pub fn as_f64(&self,_vm: &VirtualMachine) -> f64 {
+    pub fn as_f64(&self, _vm: &VirtualMachine) -> f64 {
         match self {
             Value::Float(bits) => f64::from_bits(*bits),
             Value::Int(i) => *i as f64,
             Value::Str(s) => s.parse().unwrap(),
             Value::Null => 0.0,
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
-    pub fn as_int(&self,_vm: &VirtualMachine) -> i64 {
+    pub fn as_int(&self, _vm: &VirtualMachine) -> i64 {
         match self {
             Value::Float(bits) => f64::from_bits(*bits) as i64,
             Value::Int(i) => *i,
             Value::Str(s) => s.parse().unwrap(),
             Value::Null => 0,
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
-    pub fn as_str(&self,_vm: &VirtualMachine) -> String {
+    pub fn as_str(&self, _vm: &VirtualMachine) -> String {
         match self {
             Value::Str(s) => s.to_string(),
             Value::Int(i) => i.to_string(),
             Value::Float(bits) => f64::from_bits(*bits).to_string(),
-            Value::Array(arr) => format!("{:?}",arr),
+            Value::Array(arr) => format!("{:?}", arr),
             Value::Null => "".into(),
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
     pub fn as_object_id(&mut self) -> usize {
         match self {
             Value::ObjectRef(id) => *id,
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
 
     pub fn as_func_id(&mut self) -> usize {
         match self {
             Value::FuncRef(id) => *id,
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
 }
 
 use fnv::FnvHashMap;
-#[derive(Clone,Debug,PartialEq,Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Object {
-    pub map: FnvHashMap<Value,ValueRef>,
+    pub name: Option<String>,
+    pub map: FnvHashMap<Value, ValueRef>,
 }
 
 impl Object {
-    pub fn load(&self,key: &Value) -> &ValueRef {
+    pub fn new() -> Object {
+        Object {
+            name: None,
+            map: FnvHashMap::default(),
+        }
+    }
+
+    pub fn load(&self, key: &Value) -> &ValueRef {
         self.map.get(key).unwrap()
     }
 
-    pub fn store(&mut self,key: Value,obj: ValueRef) {
-        self.map.insert(key,obj);
+    pub fn store(&mut self, key: Value, obj: ValueRef) {
+        self.map.insert(key, obj);
     }
 }
-
-
