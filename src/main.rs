@@ -1,9 +1,9 @@
-extern crate peace;
+extern crate jazz_ml_vm;
 
-use peace::frame::value;
-use peace::opcodes::Opcode;
-use peace::value::*;
-use peace::vm::VirtualMachine;
+use jazz_ml_vm::frame::value;
+use jazz_ml_vm::opcodes::Opcode;
+use jazz_ml_vm::value::*;
+use jazz_ml_vm::vm::VirtualMachine;
 
 pub fn native(_vm: &mut VirtualMachine, _args: Vec<ValueRef>) -> ValueRef {
     println!("Hello,world!");
