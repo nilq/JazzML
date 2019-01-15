@@ -1,0 +1,9 @@
+[package]
+name = "peace"
+version = "0.1.0"
+authors = ["Adel Prokurov <adel.prokurov@protonmail.com>"]
+edition = "2018"
+
+[dependencies]
+fnv = "1.0.6"
+rand = "0.6.4"
