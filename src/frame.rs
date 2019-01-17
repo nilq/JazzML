@@ -7,15 +7,12 @@ use std::cell::RefCell;
 
 pub struct Frame<'a> {
     pub code: Vec<Opcode>,
-    pub locals: FnvHashMap<String, ValueRef>,
+    pub locals: FnvHashMap<String, Value>,
     pub pc: usize,
-    pub stack: Vec<ValueRef>,
+    pub stack: Vec<Value>,
     pub vm: &'a mut VirtualMachine,
 }
 
-pub fn value(v: Value) -> ValueRef {
-    Ref::new(RefCell::new(v))
-}
 
 impl<'a> Frame<'a> {
     pub fn new(vm: &mut VirtualMachine) -> Frame {
@@ -29,62 +26,70 @@ impl<'a> Frame<'a> {
     }
 
     pub fn fetch_opcode(&mut self) -> Opcode {
-        let ins = self.code[self.pc].clone();
+        let ins = self.code.get(self.pc).expect("No opcodes left").clone();
         self.pc += 1;
         ins
     }
 
-    pub fn pop(&mut self) -> ValueRef {
+    pub fn pop(&mut self) -> Value {
         self.stack.pop().expect(&format!(
             "No value to pop.\nCurrent opcode: {:?}",self.code[self.pc - 1],
         ))
     }
 
-    pub fn push(&mut self, v: ValueRef) {
+    pub fn push(&mut self, v: Value) {
         self.stack.push(v);
     }
 
-    pub fn execute_field_call(&mut self,method_key: ValueRef,base: ValueRef,argc: usize) -> ValueRef {
-        let v: &Value = &base.borrow();
-        let key: &Value = &method_key.borrow();
+    pub fn execute_field_call(&mut self,method_key: Value,base: Value,argc: usize) -> Value {
+        let v: &Value = &base;
+        let key: &Value = &method_key;
         match v {
             &Value::ObjectRef(id) => {
                 let obj = self.vm.get_object(&id).clone();
                 let obj: &Object = &obj.borrow();
-                let func: &Value = &obj.load(key).borrow();
+                let func: &Value = &obj.load(key);
                 
                 let func: Function = if let Value::FuncRef(id) = func {
                     self.vm.get_func(&id).borrow().clone()
                 } else {
                     panic!("Method not found");
                 };
-
+                
+                
                 let mut stack = vec![];
                 for _ in 0..argc {
                     stack.push(self.pop());
                 }
-
-
-                let mut frame = Frame::new(self.vm);
-                frame.locals.insert("__this__".into(), value(Value::ObjectRef(id)));
-                for (arg,arg_name) in stack.iter().zip(&func.args) {
-                    frame.locals.insert(arg_name.to_string(),arg.clone());
+                
+                match func.kind {
+                    FuncKind::Interpret(code) => {
+                        let mut frame = Frame::new(self.vm);
+                        frame.locals.insert("__this__".into(),Value::ObjectRef(id));
+                        for (arg,arg_name) in stack.iter().zip(&func.args) {
+                            frame.locals.insert(arg_name.to_string(),arg.clone());
+                        }
+                        frame.code = code.clone();
+                        frame.run_frame()
+                    }
+                    FuncKind::Native(f) => f(&mut self.vm,stack),
                 }
-                frame.run_frame()
+
+                
             }
             _ => panic!("")
         }
     }
 
-    pub fn execute_call(&mut self, v: ValueRef, argc: usize, obj_call: bool) -> ValueRef {
-        let v: &Value = &v.borrow();
+    pub fn execute_call(&mut self, v: Value, argc: usize, obj_call: bool) -> Value {
+        let v: &Value = &v;
 
         match v {
             &Value::ObjectRef(id) => {
                 let obj = self.vm.get_object(&id).clone();
                 let obj: &Object = &obj.borrow();
                 let reference = obj.load(&Value::Str("__call__".into()));
-                self.stack.push(value(Value::ObjectRef(id)));
+                self.stack.push(Value::ObjectRef(id));
                 self.execute_call(reference.clone(), argc, true)
             }
             &Value::FuncRef(id) => {
@@ -139,7 +144,7 @@ impl<'a> Frame<'a> {
         }
     }
 
-    pub fn run_frame(&mut self) -> ValueRef {
+    pub fn run_frame(&mut self) -> Value {
         let value = loop {
             let result = self.execute_op();
             match result {
@@ -151,39 +156,39 @@ impl<'a> Frame<'a> {
         value.unwrap().clone()
     }
 
-    pub fn execute_op(&mut self) -> Option<ValueRef> {
+    pub fn execute_op(&mut self) -> Option<Value> {
         let ins = self.fetch_opcode();
 
         match ins {
             Opcode::PushObject(id) => {
-                self.push(value(Value::ObjectRef(id)));
+                self.push(Value::ObjectRef(id));
                 None
             }
             Opcode::PushFunc(id) => {
-                self.push(value(Value::FuncRef(id)));
+                self.push(Value::FuncRef(id));
                 None
             }   
 
             Opcode::PushNull => {
-                self.push(value(Value::Null));
+                self.push(Value::Null);
                 None
             }
             Opcode::PushBool(b) => {
-                self.push(value(Value::Bool(b)));
+                self.push(Value::Bool(b));
                 None
             }
             Opcode::PushInt(int) => {
-                self.stack.push(Ref::new(RefCell::new(Value::Int(int))));
+                self.stack.push(Value::Int(int));
                 None
             }
             Opcode::PushFloat(float) => {
                 self.stack
-                    .push(Ref::new(RefCell::new(Value::Float(float.to_bits()))));
+                    .push(Value::Float(float.to_bits()));
                 None
             }
 
             Opcode::PushStr(str) => {
-                self.stack.push(Ref::new(RefCell::new(Value::Str(str))));
+                self.stack.push(Value::Str(str));
                 None
             }
             Opcode::Amake(arr_len) => {
@@ -192,7 +197,7 @@ impl<'a> Frame<'a> {
                     temp.push(self.pop());
                 }
 
-                self.push(Ref::new(RefCell::new(Value::Array(temp))));
+                self.push(Value::Array(temp));
                 None
             }
 
@@ -241,8 +246,8 @@ impl<'a> Frame<'a> {
             }
 
             Opcode::LoadLocal => {
-                let name: ValueRef = self.pop();
-                let name_str = name.borrow().as_str(self.vm);
+                let name: Value = self.pop();
+                let name_str = name.as_str(self.vm);
 
                 let val = self
                     .locals
@@ -254,8 +259,8 @@ impl<'a> Frame<'a> {
             }
 
             Opcode::StoreLocal => {
-                let name: ValueRef = self.pop();
-                let name_str = name.borrow().as_str(self.vm);
+                let name: Value = self.pop();
+                let name_str = name.as_str(self.vm);
                 let val = self.pop();
                 self.locals.insert(name_str, val);
                 None
@@ -265,8 +270,8 @@ impl<'a> Frame<'a> {
                 let target = self.pop();
                 let key = self.pop();
                 let val = self.pop();
-                let key: &Value = &key.borrow();
-                let target: &Value = &target.borrow();
+                let key: &Value = &key;
+                let target: &Value = &target;
                 match target {
                     Value::ObjectRef(id) => {
                         let object: &mut Object = &mut self.vm.get_object(id).borrow_mut();
@@ -279,8 +284,8 @@ impl<'a> Frame<'a> {
             Opcode::LoadField => {
                 let target = self.pop();
                 let key = self.pop();
-                let target: &Value = &target.borrow();
-                let key: &Value = &key.borrow();
+                let target: &Value = &target;
+                let key: &Value = &key;
                 let result = match target {
                     Value::ObjectRef(id) => {
                         let object = self.vm.get_object(id).borrow();
@@ -294,7 +299,7 @@ impl<'a> Frame<'a> {
 
             Opcode::LoadGlobal => {
                 let key = self.pop();
-                let val = self.vm.globals.get(&key.borrow()).unwrap();
+                let val = self.vm.globals.get(&key).unwrap();
 
                 self.stack.push(val.clone());
                 None
@@ -303,6 +308,13 @@ impl<'a> Frame<'a> {
             Opcode::Call(nargs) => {
                 let target = self.pop();
                 let result = self.execute_call(target, nargs, false);
+                self.push(result);
+                None
+            }
+            Opcode::CallObj(nargs) => {
+                let target = self.pop();
+                let obj = self.pop();
+                let result = self.execute_field_call(target, obj, nargs);
                 self.push(result);
                 None
             }
@@ -399,20 +411,13 @@ impl<'a> Frame<'a> {
                 self.pop();
                 None
             }
-            Opcode::CallObj(nargs) => {
-                let obj = self.pop();
-                let method_key = self.pop();
-                let ret = self.execute_field_call(method_key, obj, nargs);
-                self.push(ret);
-                None
-            }
             Opcode::Jmp(pc) => {
                 self.pc = pc;
                 None
             }
             Opcode::JmpF(pc) => {
                 let value = self.pop();
-                let value: &Value = &value.borrow();
+                let value: &Value = &value;
 
                 match value {
                     Value::Bool(b) => if !*b {self.pc = pc},
@@ -423,7 +428,7 @@ impl<'a> Frame<'a> {
 
             Opcode::JmpT(pc) => {
                 let value = self.pop();
-                let value: &Value = &value.borrow();
+                let value: &Value = &value;
 
                 match value {
                     Value::Bool(b) => if *b {self.pc = pc},
@@ -434,7 +439,7 @@ impl<'a> Frame<'a> {
             Opcode::StoreGlobal => {
                 let key = self.pop();
                 let val = self.pop();
-                let key: &Value = &key.borrow();
+                let key: &Value = &key;
                 self.vm.globals.insert(key.clone(),val);
                 None
             }

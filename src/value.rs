@@ -6,7 +6,6 @@ use std::f64;
 use std::rc::Rc;
 
 pub type Ref<T> = Rc<RefCell<T>>;
-pub type ValueRef = Ref<Value>;
 pub type ObjectRef = Ref<Object>;
 pub type FuncRef = Ref<Function>;
 
@@ -14,8 +13,19 @@ pub const VAR_ARGS: i32 = -1;
 
 #[derive(Clone)]
 pub enum FuncKind {
-    Native(&'static Fn(&mut VirtualMachine, Vec<ValueRef>) -> ValueRef),
+    Native(&'static Fn(&mut VirtualMachine, Vec<Value>) -> Value),
     Interpret(Vec<Opcode>),
+}
+
+use std::fmt;
+
+impl fmt::Debug for FuncKind {
+    fn fmt(&self,fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FuncKind::Interpret(code) => write!(fmt,"<interpret> {:#?}",code),
+            _ => write!(fmt,"<native>"),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -31,7 +41,7 @@ pub enum Value {
     Float(u64),
     Bool(bool),
     Str(String),
-    Array(Vec<ValueRef>),
+    Array(Vec<Value>),
     ObjectRef(usize),
     FuncRef(usize),
     Null,
@@ -54,14 +64,7 @@ impl Hash for Value {
                 u.hash(state);
             }
             Array(arr) => {
-                let mut temp = vec![];
-                for elem in arr {
-                    let elem: &Ref<Value> = elem;
-                    let elem: SRef<Value> = elem.borrow();
-                    let elem: &Value = &elem;
-                    temp.push(elem.clone());
-                }
-                temp.hash(state);
+                arr.hash(state)
             }
         }
     }
@@ -115,7 +118,7 @@ use fnv::FnvHashMap;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Object {
     pub name: Option<String>,
-    pub map: FnvHashMap<Value, ValueRef>,
+    pub map: FnvHashMap<Value, Value>,
 }
 
 impl Object {
@@ -126,11 +129,11 @@ impl Object {
         }
     }
 
-    pub fn load(&self, key: &Value) -> &ValueRef {
+    pub fn load(&self, key: &Value) -> &Value {
         self.map.get(key).unwrap()
     }
 
-    pub fn store(&mut self, key: Value, obj: ValueRef) {
+    pub fn store(&mut self, key: Value, obj: Value) {
         self.map.insert(key, obj);
     }
 }
