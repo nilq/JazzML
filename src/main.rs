@@ -49,13 +49,15 @@ fn main() {
 
 
     let test_code = r#"
-let fib = func(a: int) : int {
+let fib = $ func(a: int) : int {
   return switch a {
       0 => 0
       1 => 1
       _ => fib(a)
   }
 }
+
+
     "#;
 
     let source = Source::from("test.jazzml", test_code.lines().map(|x| x.into()).collect::<Vec<String>>());

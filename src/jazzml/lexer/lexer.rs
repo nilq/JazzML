@@ -105,7 +105,7 @@ impl<'l> Iterator for Lexer<'l> {
           return Some(
             Err(
               response!(
-                Wrong("bumped into weird character"),
+                Wrong("bumped into unknown character"),
                 self.source.file,
                 Pos(
                   (pos.0, self.source.lines.get(pos.0.saturating_sub(1)).unwrap_or(self.source.lines.last().unwrap_or(&String::new())).to_string()),
