@@ -1,5 +1,6 @@
-use crate::value::*;
-use crate::vm::VirtualMachine;
+use super::value::*;
+use super::vm::VirtualMachine;
+
 use std::f64;
 
 pub fn value(value: Value) -> Value {

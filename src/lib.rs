@@ -1,5 +1,3 @@
-pub mod builtins;
-pub mod frame;
-pub mod opcodes;
-pub mod value;
-pub mod vm;
+pub mod jazzml;
+
+pub use self::jazzml::*;

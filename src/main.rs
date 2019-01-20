@@ -1,9 +1,13 @@
-extern crate jazz_ml_vm;
+extern crate colored;
 
-use jazz_ml_vm::opcodes::Opcode;
-use jazz_ml_vm::value::*;
-use jazz_ml_vm::vm::VirtualMachine;
-use std::cell::RefCell;
+pub mod jazzml;
+
+use self::jazzml::opcodes::Opcode;
+use self::jazzml::value::*;
+use self::jazzml::vm::VirtualMachine;
+
+use self::jazzml::lexer::*;
+use self::jazzml::source::*;
 
 pub fn native(_vm: &mut VirtualMachine, _args: Vec<Value>) -> Value {
     println!("Hello,world!");
@@ -42,4 +46,30 @@ fn main() {
     ], 0,vec![]);
 
     println!("{:?}",vm.run_func(func, vec![]));
+
+
+    let test_code = r#"
+let fib = func(a: int) : int {
+  return switch a {
+      0 => 0
+      1 => 1
+      _ => fib(a)
+  }
+}
+    "#;
+
+    let source = Source::from("test.jazzml", test_code.lines().map(|x| x.into()).collect::<Vec<String>>());
+    let lexer  = Lexer::default(test_code.chars().collect(), &source);
+
+    let mut tokens = Vec::new();
+
+    for token_result in lexer {
+        if let Ok(token) = token_result {
+            tokens.push(token)
+        } else {
+            return
+        }
+    }
+
+    println!("{:#?}", tokens)
 }
