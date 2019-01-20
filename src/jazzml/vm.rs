@@ -62,17 +62,21 @@ impl VirtualMachine {
         frame.run_frame()
     }
 
-    pub fn run_func(&mut self,func: usize,args: Vec<Value>) -> Value {
-        let func: &FuncRef = &self.functions.get(&func).expect("function not defined").clone();
+    pub fn run_func(&mut self, func: usize, args: Vec<Value>) -> Value {
+        let func: &FuncRef = &self
+            .functions
+            .get(&func)
+            .expect("function not defined")
+            .clone();
         let func: &Function = &func.borrow();
-        
+
         match &func.kind {
             FuncKind::Interpret(ins) => {
                 let mut frame = Frame::new(self);
                 frame.locals = {
                     let mut temp = FnvHashMap::default();
 
-                    for (arg,arg_name) in args.iter().zip(&func.args) {
+                    for (arg, arg_name) in args.iter().zip(&func.args) {
                         temp.insert(arg_name.to_owned(), arg.clone());
                     }
                     temp
@@ -81,41 +85,45 @@ impl VirtualMachine {
                 frame.code = ins.clone();
                 frame.run_frame()
             }
-            FuncKind::Native(f) => {
-                f(self,args)
-            }
+            FuncKind::Native(f) => f(self, args),
         }
     }
 
-    pub fn register_predefiend_func(&mut self,f: Function) -> usize {
+    pub fn register_predefiend_func(&mut self, f: Function) -> usize {
         let func_id = self.fid;
-        self.functions.insert(self.fid,FuncRef::new(RefCell::new(f)));
+        self.functions
+            .insert(self.fid, FuncRef::new(RefCell::new(f)));
         self.fid += 1;
         func_id
     }
 
-    pub fn new_func(&mut self,nargs: i32,args: Vec<String>) -> usize {
+    pub fn new_func(&mut self, nargs: i32, args: Vec<String>) -> usize {
         let func = Function {
             kind: FuncKind::Interpret(vec![]),
             nargs,
             args,
         };
         let func_id = self.fid;
-        self.functions.insert(self.fid,FuncRef::new(RefCell::new(func)));
+        self.functions
+            .insert(self.fid, FuncRef::new(RefCell::new(func)));
         self.fid += 1;
         func_id
     }
 
-    pub fn register_func(&mut self, name: String, ins: Vec<Opcode>, nargs: i32, args: Vec<String>) -> usize {
+    pub fn register_func(
+        &mut self,
+        name: String,
+        ins: Vec<Opcode>,
+        nargs: i32,
+        args: Vec<String>,
+    ) -> usize {
         let func = Function {
             kind: FuncKind::Interpret(ins),
             nargs,
             args,
         };
-        self.globals.insert(
-            Value::Str(name),
-           Value::FuncRef(self.fid),
-        );
+        self.globals
+            .insert(Value::Str(name), Value::FuncRef(self.fid));
         let id = self.fid;
         self.functions
             .insert(self.fid, FuncRef::new(RefCell::new(func)));
@@ -135,10 +143,8 @@ impl VirtualMachine {
             args: vec![],
         };
 
-        self.globals.insert(
-            Value::Str(name),
-            Value::FuncRef(self.fid),
-        );
+        self.globals
+            .insert(Value::Str(name), Value::FuncRef(self.fid));
         self.functions
             .insert(self.fid, FuncRef::new(RefCell::new(func)));
         self.fid += 1;
@@ -160,10 +166,10 @@ impl VirtualMachine {
         id
     }
 
-    pub fn register_object(&mut self,obj: Object) -> usize {
+    pub fn register_object(&mut self, obj: Object) -> usize {
         let id = self.oid;
 
-        self.pool.insert(id,ObjectRef::new(RefCell::new(obj)));
+        self.pool.insert(id, ObjectRef::new(RefCell::new(obj)));
         self.oid += 1;
         id
     }

@@ -20,10 +20,10 @@ pub enum FuncKind {
 use std::fmt;
 
 impl fmt::Debug for FuncKind {
-    fn fmt(&self,fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            FuncKind::Interpret(code) => write!(fmt,"<interpret> {:#?}",code),
-            _ => write!(fmt,"<native>"),
+            FuncKind::Interpret(code) => write!(fmt, "<interpret> {:#?}", code),
+            _ => write!(fmt, "<native>"),
         }
     }
 }
@@ -35,7 +35,7 @@ pub struct Function {
     pub args: Vec<String>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Value {
     Int(i64),
     Float(u64),
@@ -63,9 +63,7 @@ impl Hash for Value {
                 let u: u32 = rand::random();
                 u.hash(state);
             }
-            Array(arr) => {
-                arr.hash(state)
-            }
+            Array(arr) => arr.hash(state),
         }
     }
 }
