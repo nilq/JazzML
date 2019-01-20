@@ -392,6 +392,28 @@ impl<'p> Parser<'p> {
         Keyword => match self.current_lexeme().as_str() {
           "func" => self.parse_function()?,
 
+          "struct" => {
+            let mut position = self.current_position();
+            
+            self.next()?;
+            self.next_newline()?;
+
+            position = self.span_from(position);
+
+            self.expect_lexeme("{")?;
+
+            let params = self.parse_block_of(("{", "}"), &Self::_parse_struct_param_comma)?;
+
+            Expression::new(
+              ExpressionNode::Struct(
+                params,
+                format!("{}{}", self.source.file, position),
+              ),
+
+              position
+            )
+          },
+
           "if" => {
             self.next()?;
 
@@ -551,6 +573,30 @@ impl<'p> Parser<'p> {
           self.parse_postfix(index)
         },
 
+        "." => {
+          let position = self.current_position();
+          self.next()?;
+
+          let id = Expression::new(
+            ExpressionNode::Identifier(
+              self.eat()?
+            ),
+            position
+          );
+
+          let position = expression.pos.clone();
+
+          let index = Expression::new(
+            ExpressionNode::Index(
+              Rc::new(expression),
+              Rc::new(id),
+            ),
+            self.span_from(position)
+          );
+
+          self.parse_postfix(index)
+        },
+
         _ => Ok(expression)
       },
 
@@ -570,29 +616,6 @@ impl<'p> Parser<'p> {
         },
 
         _ => Ok(expression)
-      },
-
-      TokenType::Identifier => {
-        let position = self.current_position();
-
-        let id = Expression::new(
-          ExpressionNode::Identifier(
-            self.eat()?
-          ),
-          position
-        );
-
-        let position = expression.pos.clone();
-
-        let index = Expression::new(
-          ExpressionNode::Index(
-            Rc::new(expression),
-            Rc::new(id)
-          ),
-          self.span_from(position)
-        );
-
-        self.parse_postfix(index)
       },
 
       _ => Ok(expression)
@@ -671,12 +694,12 @@ impl<'p> Parser<'p> {
 
     let t = match self.current_type() {
       Identifier => match self.eat()?.as_str() {
-        "str"   => Type::from(TypeNode::Str),
-        "char"  => Type::from(TypeNode::Char),
-        "int"   => Type::from(TypeNode::Int),
-        "float" => Type::from(TypeNode::Float),
-        "any"   => Type::from(TypeNode::Any),
-        "bool"  => Type::from(TypeNode::Bool),
+        "string" => Type::from(TypeNode::Str),
+        "char"   => Type::from(TypeNode::Char),
+        "int"    => Type::from(TypeNode::Int),
+        "float"  => Type::from(TypeNode::Float),
+        "any"    => Type::from(TypeNode::Any),
+        "bool"   => Type::from(TypeNode::Bool),
 
         _ => {
           self.index -= 1; // lol

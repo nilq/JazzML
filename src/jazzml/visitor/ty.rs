@@ -21,7 +21,7 @@ pub enum TypeNode {
   Array(Rc<Type>, Option<usize>),
   Func(Vec<Type>, Rc<Type>, Option<Rc<ExpressionNode>>, bool),
   Module(HashMap<String, Type>),
-  Struct(String, HashMap<String, Type>, String),
+  Struct(HashMap<String, Type>, String),
   This,
 }
 
@@ -76,7 +76,7 @@ impl TypeNode {
       (&Id(ref a), &Id(ref b)) => a == b,
       (&Array(ref a, ref la), &Array(ref b, ref lb))                                     => a == b && (la == &None || la == lb),
       (&Func(ref a_params, ref a_retty, .., a), &Func(ref b_params, ref b_retty, .., b)) => a_params == b_params && a_retty == b_retty && a == b,
-      (&Struct(ref name, _, ref content), &Struct(ref name_b, _, ref content_b))         => name == name_b && content == content_b,
+      (&Struct(_, ref content), &Struct(_, ref content_b))                               => content == content_b,
       _ => false,
     }
   }
@@ -98,7 +98,7 @@ impl PartialEq for TypeNode {
       (&Id(ref a),                           &Id(ref b))                           => a == b,
       (&Func(ref a_params, ref a_retty, .., a), &Func(ref b_params, ref b_retty, .., b)) => a_params == b_params && a_retty == b_retty && a == b,
 
-      (&Struct(ref name, _, ref content), &Struct(ref name_b, _, ref content_b)) => name == name_b && content == content_b,
+      (&Struct(_, ref content), &Struct(_, ref content_b))                         => content == content_b,
 
       (&Any, _) => true,
       (_, &Any) => true,
@@ -146,7 +146,7 @@ impl Display for TypeNode {
       Int              => write!(f, "int"),
       Float            => write!(f, "float"),
       Bool             => write!(f, "bool"),
-      Str              => write!(f, "str"),
+      Str              => write!(f, "string"),
       Char             => write!(f, "char"),
       Nil              => write!(f, "nil"),
       This             => write!(f, "self"),
@@ -160,7 +160,7 @@ impl Display for TypeNode {
       Id(ref n) => write!(f, "deid({})", n.pos.get_lexeme()),
 
       Module(_)            => write!(f, "module"),
-      Struct(ref name, ..) => write!(f, "{}", name),
+      Struct(..)           => write!(f, "<struct>"),
 
       Func(ref params, ref return_type, ..) => {
         write!(f, "fun(")?;

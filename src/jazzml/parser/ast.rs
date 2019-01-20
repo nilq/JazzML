@@ -9,10 +9,8 @@ pub enum StatementNode {
   Variable(bool, Type, String, Option<Expression>),
   Assignment(Expression, Expression),
   Return(Option<Rc<Expression>>),
-  Struct(String, Vec<(String, Type)>, String),
   Extern(Type, Option<String>),
   Module(Rc<Expression>),
-  Enum(String, Vec<String>),
 
   Continue,
   Break,
@@ -60,6 +58,9 @@ pub enum ExpressionNode {
   If(Rc<Expression>, Rc<Expression>, Option<Vec<(Option<Expression>, Expression, Pos)>>),
 
   While(Rc<Expression>, Rc<Expression>),
+
+  Struct(Vec<(String, Type)>, String),
+  Enum(String, Vec<String>),
   Initialization(Rc<Expression>, Vec<(String, Expression)>),
 
   Empty,
