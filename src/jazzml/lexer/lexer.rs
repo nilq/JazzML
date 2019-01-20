@@ -37,13 +37,15 @@ impl<'l> Lexer<'l> {
           "let",
           "var",
           "func",
-          "->",
           "=>",
           "return",
           "if",
           "elif",
           "else",
           "switch",
+          "continue",
+          "break",
+          "while",
         ])
       )
     );

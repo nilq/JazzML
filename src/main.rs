@@ -8,6 +8,7 @@ use self::jazzml::vm::VirtualMachine;
 
 use self::jazzml::lexer::*;
 use self::jazzml::source::*;
+use self::jazzml::parser::*;
 
 pub fn native(_vm: &mut VirtualMachine, _args: Vec<Value>) -> Value {
     println!("Hello,world!");
@@ -49,15 +50,13 @@ fn main() {
 
 
     let test_code = r#"
-let fib = $ func(a: int) : int {
-  return switch a {
-      0 => 0
-      1 => 1
-      _ => fib(a)
-  }
+let fib = func(a: int) : int {
+    return if a < 3 {
+        return a
+    } else {
+        return fib(a - 1) + fib(a - 2)
+    }
 }
-
-
     "#;
 
     let source = Source::from("test.jazzml", test_code.lines().map(|x| x.into()).collect::<Vec<String>>());
@@ -72,6 +71,14 @@ let fib = $ func(a: int) : int {
             return
         }
     }
+    
+    let mut parser = Parser::new(tokens, &source);
 
-    println!("{:#?}", tokens)
+    match parser.parse() {
+        Ok(ref ast) => {
+            println!("{:#?}", ast)
+        },
+
+        _ => ()
+    }
 }
