@@ -3,33 +3,39 @@ ML-like language used for scripting
 
 
 # Examples
+
+## Data
+
 ```ocaml
-enum type BinOp = {
-    Add,
-    Sub,
+let TokenType = enum {
+  String
+  Number
+  Identifier
+  Symbol
+  EOF
 }
 
-enum type Expr = {
-    Int of Int
-    Binary of Expr * BinOp * Expr
-};
+let Token = struct {
+  position: (int, str) # line number and actual line
+  slice:    (int, int) # beginning and end of lexeme on line
 
-let function visit_expr e = {
-    match e {
-        Int: i -> return i,
-        Binary: lhs, op, rhs -> {
-            let lhs = visit_expr lhs
-            let rhs = visit_expr rhs
-
-            match op {
-                Add -> return lhs + rhs
-                Sub -> return lhs - rhs
-            }
-        }
-    }
+  type:   TokenType
+  lexeme: str          # content of token
 }
 ```
 
+## Other
+
+```ocaml
+let fibonacci = func(a: int) : int {
+  # implicit returns
+  if a > 2 {
+    fib(a - 1) + fib(a - 2)
+  } else {
+    a
+  }
+}
+```
 
 
 # Known issues
