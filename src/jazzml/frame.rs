@@ -26,7 +26,14 @@ impl<'a> Frame<'a> {
     }
 
     pub fn fetch_opcode(&mut self) -> Opcode {
-        let ins = self.code.get(self.pc).expect(&format!("No opcodes left (pc = {})\n all opcodes: {:?}",self.pc,self.code)).clone();
+        let ins = self
+            .code
+            .get(self.pc)
+            .expect(&format!(
+                "No opcodes left (pc = {})\n all opcodes: {:?}",
+                self.pc, self.code
+            ))
+            .clone();
         self.pc += 1;
         ins
     }
@@ -104,6 +111,7 @@ impl<'a> Frame<'a> {
                                 let mut frame = Frame::new(self.vm);
                                 frame.code = v;
                                 frame.stack = temp;
+                                frame.locals = self.locals.clone();
                                 frame.run_frame()
                             }
                         };
@@ -128,9 +136,11 @@ impl<'a> Frame<'a> {
                             FuncKind::Interpret(v) => {
                                 let mut frame = Frame::new(self.vm);
                                 frame.code = v.clone();
+                                frame.locals = self.locals.clone();
                                 for (arg,arg_name) in temp.iter().zip(&func.args) {
                                     frame.locals.insert(arg_name.clone(), arg.clone());
                                 }
+                                
                                 frame.run_frame()
                             }
                         };
@@ -156,7 +166,7 @@ impl<'a> Frame<'a> {
 
     pub fn execute_op(&mut self) -> Option<Value> {
         let ins = self.fetch_opcode();
-
+        
         match ins {
             Opcode::PushObject(id) => {
                 self.push(Value::ObjectRef(id));
@@ -166,6 +176,7 @@ impl<'a> Frame<'a> {
                 self.push(Value::FuncRef(id));
                 None
             }
+            Opcode::Nop => {None},
 
             Opcode::PushNull => {
                 self.push(Value::Null);
@@ -259,6 +270,7 @@ impl<'a> Frame<'a> {
                 let name: Value = self.pop();
                 let name_str = name.as_str(self.vm);
                 let val = self.pop();
+                
                 self.locals.insert(name_str, val);
                 None
             }

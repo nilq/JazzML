@@ -81,7 +81,7 @@ impl<'v> Visitor<'v> {
             Variable(..) => self.visit_variable(&statement.node, &statement.pos),
 
             Return(ref value) => {
-                if self.inside.contains(&Inside::Function) {
+                /*if self.inside.contains(&Inside::Function) {
                     if let Some(ref expression) = *value {
                         self.visit_expression(expression)
                     } else {
@@ -93,7 +93,13 @@ impl<'v> Visitor<'v> {
                         self.source.file,
                         statement.pos
                     ));
+                }*/
+                if let Some(ref expr) = *value {
+                    self.visit_expression(expr)
+                } else {
+                    Ok(())
                 }
+
             }
 
             Break => {
@@ -415,7 +421,9 @@ impl<'v> Visitor<'v> {
 
                     let mut actual_arg_len = args.len();
                     let mut type_buffer: Option<Type> = None;
-
+                    if params.contains(&Type::from(TypeNode::VaArgs)) {
+                        return Ok(());
+                    }
                     for (i, param_type) in params.iter().enumerate() {
                         let param_type = self.deid(param_type.clone())?;
                         let arg_type = self.type_expression(&args[i])?;
@@ -1319,7 +1327,7 @@ impl<'v> Visitor<'v> {
         self.symtab.assign_str(name, t)
     }
 
-    fn assign(&mut self, name: String, t: Type) {
+    pub fn assign(&mut self, name: String, t: Type) {
         self.symtab.assign(name, t)
     }
 

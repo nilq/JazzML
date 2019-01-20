@@ -7,6 +7,14 @@ pub fn value(value: Value) -> Value {
     value
 }
 
+pub fn print(vm: &mut VirtualMachine,args: Vec<Value>) -> Value {
+    for value in args.iter() {
+        print!("{}",value.as_str(vm));
+    }
+    println!("");
+    Value::Null
+}
+
 pub fn add(vm: &mut VirtualMachine, args: Vec<Value>) -> Value {
     if args.len() == 0 || args.len() > 2 {
         return value(Value::Null);

@@ -27,6 +27,8 @@ impl VirtualMachine {
     pub fn init_builtins(&mut self) {
         use super::builtins::*;
 
+        self.register_native_func(format!("print"), &print, -1);
+
         macro_rules! register_native {
             ($($fname: ident: $argc: expr),+) => {
                 $(

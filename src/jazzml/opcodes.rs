@@ -25,6 +25,7 @@ pub enum Opcode {
     Bor,
     Band,
     And,
+    Nop,
     Or,
     Shr,
     Shl,

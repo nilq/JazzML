@@ -84,12 +84,6 @@ impl SymTab {
         let mut offset = self.stack.len() - 1;
 
         loop {
-            let len = self.stack.len();
-
-            if offset < 0 {
-                return None;
-            }
-
             if let Some(t) = self.stack[offset].get(name) {
                 return Some(t);
             } else {

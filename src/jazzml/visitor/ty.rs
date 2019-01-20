@@ -15,6 +15,7 @@ pub enum TypeNode {
     Any,
     Char,
     Nil,
+    VaArgs,
     Id(Rc<Expression>),
     Array(Rc<Type>, Option<usize>),
     Func(Vec<Type>, Rc<Type>, Option<Rc<ExpressionNode>>, bool),
@@ -142,6 +143,7 @@ impl Display for TypeNode {
         use self::TypeNode::*;
 
         match *self {
+            VaArgs => write!(f,"VAR_ARGS"),
             Int => write!(f, "int"),
             Float => write!(f, "float"),
             Bool => write!(f, "bool"),
