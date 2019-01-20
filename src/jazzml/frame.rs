@@ -1,7 +1,8 @@
-use crate::builtins;
-use crate::opcodes::Opcode;
-use crate::value::*;
-use crate::vm::VirtualMachine;
+use super::builtins;
+use super::opcodes::Opcode;
+use super::value::*;
+use super::vm::VirtualMachine;
+
 use fnv::FnvHashMap;
 use std::cell::RefCell;
 

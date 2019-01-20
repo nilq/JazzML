@@ -1,6 +1,7 @@
-use crate::frame::Frame;
-use crate::opcodes::Opcode;
-use crate::value::{FuncKind, FuncRef, Function, Object, ObjectRef, Value};
+use super::frame::Frame;
+use super::opcodes::Opcode;
+use super::value::{FuncKind, FuncRef, Function, Object, ObjectRef, Value};
+
 use fnv::FnvHashMap;
 use std::cell::RefCell;
 
@@ -24,7 +25,7 @@ impl VirtualMachine {
     }
 
     pub fn init_builtins(&mut self) {
-        use crate::builtins::*;
+        use super::builtins::*;
 
         macro_rules! register_native {
             ($($fname: ident: $argc: expr),+) => {
