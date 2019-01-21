@@ -1,0 +1,16 @@
+# Jazz is nice
+let foo = func() : any {
+    let Foo = struct {
+        x: int
+        y: int
+    }
+
+    Foo
+}
+
+let bar: any = new foo() {
+    x: 100 as int
+    y: 100 as int
+}
+
+bar.x = bar.x + 10

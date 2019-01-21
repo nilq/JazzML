@@ -6,9 +6,10 @@ use self::jazzml::opcodes::Opcode;
 use self::jazzml::value::*;
 use self::jazzml::vm::VirtualMachine;
 
+use self::jazzml::codegen::Compiler;
 use self::jazzml::lexer::*;
-use self::jazzml::source::*;
 use self::jazzml::parser::*;
+use self::jazzml::source::*;
 use self::jazzml::visitor::*;
 
 pub fn native(_vm: &mut VirtualMachine, _args: Vec<Value>) -> Value {
@@ -16,63 +17,22 @@ pub fn native(_vm: &mut VirtualMachine, _args: Vec<Value>) -> Value {
     Value::Null
 }
 
+use std::env::args;
+use std::fs::File;
+use std::io::Read;
+
 fn main() {
-    let mut vm = VirtualMachine::new();
+    let file = args().nth(1).unwrap();
+    let mut handle = File::open(&file).unwrap();
+    let mut code = String::new();
 
-    let func = Function {
-        args: vec![],
-        nargs: -1,
-        kind: FuncKind::Interpret(
-            vec![
-                Opcode::PushStr("Hello,world!".into()),
-                Opcode::Ret,
-            ]
-        )
-    };
+    handle.read_to_string(&mut code).unwrap();
 
-    let fid = vm.register_predefiend_func(func);
-
-    let mut object = Object::new();
-    object.store(Value::Str("method".into()), Value::FuncRef(fid));
-
-    let obj_id = vm.register_object(object);
-
-    let f = vm.get_func(&fid);
-    println!("{:?}",f.borrow().kind);
-
-    let func = vm.register_func("main".into(), vec![
-        Opcode::PushObject(obj_id),
-        Opcode::PushStr("method".into()),
-        Opcode::CallObj(0),
-        Opcode::Ret,
-    ], 0,vec![]);
-
-    println!("{:?}",vm.run_func(func, vec![]));
-
-
-    let test_code = r#"
-# Jazz is nice
-let foo = func() : any {
-    let Foo = struct {
-        x: int
-        y: int
-    }
-
-    Foo
-}
-
-let bar: any = new foo() {
-    x: 100 as int
-    y: 100 as int
-}
-
-bar(100, 100)
-
-bar.x = bar.x + 10
-    "#;
-
-    let source = Source::from("test.jazzml", test_code.lines().map(|x| x.into()).collect::<Vec<String>>());
-    let lexer  = Lexer::default(test_code.chars().collect(), &source);
+    let source = Source::from(
+        &file,
+        code.lines().map(|x| x.into()).collect::<Vec<String>>(),
+    );
+    let lexer = Lexer::default(code.chars().collect(), &source);
 
     let mut tokens = Vec::new();
 
@@ -80,10 +40,10 @@ bar.x = bar.x + 10
         if let Ok(token) = token_result {
             tokens.push(token)
         } else {
-            return
+            return;
         }
     }
-    
+
     let mut parser = Parser::new(tokens, &source);
 
     match parser.parse() {
@@ -92,10 +52,31 @@ bar.x = bar.x + 10
 
             match visitor.visit() {
                 Ok(_) => (),
-                _     => return
+                _ => return,
             }
-        },
 
-        _ => ()
+            use time::PreciseTime;
+
+            let mut vm = VirtualMachine::new();
+            let start = PreciseTime::now();
+            let mut compiler = Compiler::new(&mut vm);
+
+            compiler.compile(ast.clone());
+
+            let ins = compiler.finish();
+
+            for (idx, ins) in ins.iter().enumerate() {
+                println!("{}: {:?}", idx, ins);
+            }
+
+            let ret = vm.run_instructions(ins);
+            let end = PreciseTime::now();
+            let result = start.to(end).num_milliseconds();
+
+            println!("{} ms", result);
+            println!("{:?}", ret);
+        }
+
+        _ => (),
     }
 }

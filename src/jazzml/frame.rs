@@ -14,7 +14,6 @@ pub struct Frame<'a> {
     pub vm: &'a mut VirtualMachine,
 }
 
-
 impl<'a> Frame<'a> {
     pub fn new(vm: &mut VirtualMachine) -> Frame {
         Frame {
@@ -27,14 +26,22 @@ impl<'a> Frame<'a> {
     }
 
     pub fn fetch_opcode(&mut self) -> Opcode {
-        let ins = self.code.get(self.pc).expect("No opcodes left").clone();
+        let ins = self
+            .code
+            .get(self.pc)
+            .expect(&format!(
+                "No opcodes left (pc = {})\n all opcodes: {:?}",
+                self.pc, self.code
+            ))
+            .clone();
         self.pc += 1;
         ins
     }
 
     pub fn pop(&mut self) -> Value {
         self.stack.pop().expect(&format!(
-            "No value to pop.\nCurrent opcode: {:?}",self.code[self.pc - 1],
+            "No value to pop.\nCurrent opcode: {:?}",
+            self.code[self.pc - 1],
         ))
     }
 
@@ -42,7 +49,7 @@ impl<'a> Frame<'a> {
         self.stack.push(v);
     }
 
-    pub fn execute_field_call(&mut self,method_key: Value,base: Value,argc: usize) -> Value {
+    pub fn execute_field_call(&mut self, method_key: Value, base: Value, argc: usize) -> Value {
         let v: &Value = &base;
         let key: &Value = &method_key;
         match v {
@@ -50,35 +57,32 @@ impl<'a> Frame<'a> {
                 let obj = self.vm.get_object(&id).clone();
                 let obj: &Object = &obj.borrow();
                 let func: &Value = &obj.load(key);
-                
+
                 let func: Function = if let Value::FuncRef(id) = func {
                     self.vm.get_func(&id).borrow().clone()
                 } else {
                     panic!("Method not found");
                 };
-                
-                
+
                 let mut stack = vec![];
                 for _ in 0..argc {
                     stack.push(self.pop());
                 }
-                
+
                 match func.kind {
                     FuncKind::Interpret(code) => {
                         let mut frame = Frame::new(self.vm);
-                        frame.locals.insert("__this__".into(),Value::ObjectRef(id));
-                        for (arg,arg_name) in stack.iter().zip(&func.args) {
-                            frame.locals.insert(arg_name.to_string(),arg.clone());
+                        frame.locals.insert("__this__".into(), Value::ObjectRef(id));
+                        for (arg, arg_name) in stack.iter().zip(&func.args) {
+                            frame.locals.insert(arg_name.to_string(), arg.clone());
                         }
                         frame.code = code.clone();
                         frame.run_frame()
                     }
-                    FuncKind::Native(f) => f(&mut self.vm,stack),
+                    FuncKind::Native(f) => f(&mut self.vm, stack),
                 }
-
-                
             }
-            _ => panic!("")
+            _ => panic!(""),
         }
     }
 
@@ -107,6 +111,7 @@ impl<'a> Frame<'a> {
                                 let mut frame = Frame::new(self.vm);
                                 frame.code = v;
                                 frame.stack = temp;
+                                frame.locals = self.locals.clone();
                                 frame.run_frame()
                             }
                         };
@@ -121,7 +126,7 @@ impl<'a> Frame<'a> {
                         let mut temp = vec![];
                         if obj_call {
                             temp.push(self.pop());
-                        }                        
+                        }
                         for _ in 0..nargs {
                             temp.push(self.pop());
                         }
@@ -131,9 +136,11 @@ impl<'a> Frame<'a> {
                             FuncKind::Interpret(v) => {
                                 let mut frame = Frame::new(self.vm);
                                 frame.code = v.clone();
+                                frame.locals = self.locals.clone();
                                 for (arg,arg_name) in temp.iter().zip(&func.args) {
                                     frame.locals.insert(arg_name.clone(), arg.clone());
                                 }
+
                                 frame.run_frame()
                             }
                         };
@@ -168,7 +175,9 @@ impl<'a> Frame<'a> {
             Opcode::PushFunc(id) => {
                 self.push(Value::FuncRef(id));
                 None
-            }   
+            }
+
+            Opcode::Nop => None,
 
             Opcode::PushNull => {
                 self.push(Value::Null);
@@ -183,8 +192,7 @@ impl<'a> Frame<'a> {
                 None
             }
             Opcode::PushFloat(float) => {
-                self.stack
-                    .push(Value::Float(float.to_bits()));
+                self.stack.push(Value::Float(float.to_bits()));
                 None
             }
 
@@ -263,6 +271,7 @@ impl<'a> Frame<'a> {
                 let name: Value = self.pop();
                 let name_str = name.as_str(self.vm);
                 let val = self.pop();
+
                 self.locals.insert(name_str, val);
                 None
             }
@@ -328,21 +337,21 @@ impl<'a> Frame<'a> {
             Opcode::Eq => {
                 let x = self.pop();
                 let y = self.pop();
-                let z = builtins::eq(self.vm,vec![x,y]);
+                let z = builtins::eq(self.vm, vec![x, y]);
                 self.push(z);
                 None
             }
             Opcode::Neq => {
                 let x = self.pop();
                 let y = self.pop();
-                let z = builtins::neq(self.vm,vec![x,y]);
+                let z = builtins::neq(self.vm, vec![x, y]);
                 self.push(z);
                 None
             }
             Opcode::Gt => {
                 let x = self.pop();
                 let y = self.pop();
-                let z = builtins::gt(self.vm,vec![x,y]);
+                let z = builtins::gt(self.vm, vec![x, y]);
                 self.push(z);
                 None
             }
@@ -350,14 +359,14 @@ impl<'a> Frame<'a> {
             Opcode::Lt => {
                 let x = self.pop();
                 let y = self.pop();
-                let z = builtins::lt(self.vm,vec![x,y]);
+                let z = builtins::lt(self.vm, vec![x, y]);
                 self.push(z);
                 None
             }
             Opcode::Shr => {
                 let x = self.pop();
                 let y = self.pop();
-                let z = builtins::shr(self.vm,vec![x,y]);
+                let z = builtins::shr(self.vm, vec![x, y]);
                 self.push(z);
                 None
             }
@@ -365,14 +374,14 @@ impl<'a> Frame<'a> {
             Opcode::Shl => {
                 let x = self.pop();
                 let y = self.pop();
-                let z = builtins::shl(self.vm,vec![x,y]);
+                let z = builtins::shl(self.vm, vec![x, y]);
                 self.push(z);
                 None
             }
             Opcode::And => {
                 let x = self.pop();
                 let y = self.pop();
-                let z = builtins::and(self.vm,vec![x,y]);
+                let z = builtins::and(self.vm, vec![x, y]);
                 self.push(z);
                 None
             }
@@ -380,7 +389,7 @@ impl<'a> Frame<'a> {
             Opcode::Or => {
                 let x = self.pop();
                 let y = self.pop();
-                let z = builtins::and(self.vm,vec![x,y]);
+                let z = builtins::and(self.vm, vec![x, y]);
                 self.push(z);
                 None
             }
@@ -388,14 +397,14 @@ impl<'a> Frame<'a> {
             Opcode::Band => {
                 let x = self.pop();
                 let y = self.pop();
-                let z = builtins::band(self.vm, vec![x,y]);
+                let z = builtins::band(self.vm, vec![x, y]);
                 self.push(z);
                 None
             }
             Opcode::Bor => {
                 let x = self.pop();
                 let y = self.pop();
-                let z = builtins::bor(self.vm,vec![x,y]);
+                let z = builtins::bor(self.vm, vec![x, y]);
                 self.push(z);
                 None
             }
@@ -403,7 +412,7 @@ impl<'a> Frame<'a> {
             Opcode::Bxor => {
                 let x = self.pop();
                 let y = self.pop();
-                let z = builtins::bxor(self.vm,vec![x,y]);
+                let z = builtins::bxor(self.vm, vec![x, y]);
                 self.push(z);
                 None
             }
@@ -421,7 +430,11 @@ impl<'a> Frame<'a> {
                 let value: &Value = &value;
 
                 match value {
-                    Value::Bool(b) => if !*b {self.pc = pc},
+                    Value::Bool(b) => {
+                        if !*b {
+                            self.pc = pc
+                        }
+                    }
                     _ => {}
                 }
                 None
@@ -432,7 +445,11 @@ impl<'a> Frame<'a> {
                 let value: &Value = &value;
 
                 match value {
-                    Value::Bool(b) => if *b {self.pc = pc},
+                    Value::Bool(b) => {
+                        if *b {
+                            self.pc = pc
+                        }
+                    }
                     _ => {}
                 }
                 None
@@ -441,10 +458,10 @@ impl<'a> Frame<'a> {
                 let key = self.pop();
                 let val = self.pop();
                 let key: &Value = &key;
-                self.vm.globals.insert(key.clone(),val);
+                self.vm.globals.insert(key.clone(), val);
                 None
             }
-            Opcode::TailCall(_) => panic!("Taill call not implemented")
+            Opcode::TailCall(_) => panic!("Taill call not implemented"),
         }
     }
 }
