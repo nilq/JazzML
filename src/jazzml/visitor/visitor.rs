@@ -210,35 +210,45 @@ impl<'v> Visitor<'v> {
       Initialization(ref left, ref args) => {
         let struct_type = self.type_expression(&*left)?;
 
-        if let TypeNode::Struct(ref content, _) = struct_type.node {
-          if struct_type.mode.strong_cmp(&TypeMode::Undeclared) {
-          
-            for arg in args.iter() {
-              self.visit_expression(&arg.1)?;
+        if struct_type.node != TypeNode::Any {
+          if let TypeNode::Struct(ref content, _) = struct_type.node {
+            if struct_type.mode.strong_cmp(&TypeMode::Undeclared) {
+            
+              for arg in args.iter() {
+                self.visit_expression(&arg.1)?;
 
-              let arg_type = self.type_expression(&arg.1)?;
+                let arg_type = self.type_expression(&arg.1)?;
 
-              if let Some(ref content_type) = content.get(&arg.0) {
-                if !content_type.node.check_expression(&Parser::fold_expression(&arg.1)?.node) && arg_type != **content_type {
+                if let Some(ref content_type) = content.get(&arg.0) {
+                  if !content_type.node.check_expression(&Parser::fold_expression(&arg.1)?.node) && arg_type != **content_type {
+                    return Err(
+                      response!(
+                        Wrong(format!("mismatched types, expected `{}` got `{}`", content_type, arg_type)),
+                        self.source.file,
+                        expression.pos
+                      )
+                    )
+                  }
+                } else {
                   return Err(
                     response!(
-                      Wrong(format!("mismatched types, expected `{}` got `{}`", content_type, arg_type)),
+                      Wrong(format!("no such member `{}` in struct", arg.0)),
                       self.source.file,
-                      expression.pos
+                      arg.1.pos
                     )
                   )
                 }
-              } else {
-                return Err(
-                  response!(
-                    Wrong(format!("no such member `{}` in struct", arg.0)),
-                    self.source.file,
-                    arg.1.pos
-                  )
-                )
               }
+            
+            } else {
+              return Err(
+                response!(
+                  Wrong(format!("can't initialize non-struct: `{}`", struct_type.node)),
+                  self.source.file,
+                  expression.pos
+                )
+              )
             }
-          
           } else {
             return Err(
               response!(
@@ -248,14 +258,6 @@ impl<'v> Visitor<'v> {
               )
             )
           }
-        } else {
-          return Err(
-            response!(
-              Wrong(format!("can't initialize non-struct: `{}`", struct_type.node)),
-              self.source.file,
-              expression.pos
-            )
-          )
         }
 
         Ok(())
@@ -811,9 +813,30 @@ impl<'v> Visitor<'v> {
       Int(_)   => Type::from(TypeNode::Int),
       Float(_) => Type::from(TypeNode::Float),
 
-      Array(ref content)          => Type::array(self.type_expression(content.first().unwrap())?, Some(content.len())),
-      Initialization(ref name, _) => Type::from(self.type_expression(name)?.node),
-      If(_, ref body, ..)         => self.type_expression(body)?,
+      Array(ref content) => Type::array(self.type_expression(content.first().unwrap())?, Some(content.len())),
+
+      Initialization(ref name, ref content) => {
+        let struct_type = Type::from(self.type_expression(name)?.node);
+
+        if struct_type.node == TypeNode::Any {
+          let mut new_content = HashMap::new();
+
+          for (name, ty) in content {
+            new_content.insert(name.clone(), self.type_expression(ty)?);
+          }
+
+          Type::from(
+            TypeNode::Struct(
+              new_content,
+              String::new(),
+            )
+          )
+        } else {
+          struct_type
+        }
+      },
+
+      If(_, ref body, ..) => self.type_expression(body)?,
 
       Index(ref array, ref index) => {
         let mut kind = self.type_expression(array)?;

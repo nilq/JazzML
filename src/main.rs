@@ -51,27 +51,24 @@ fn main() {
 
 
     let test_code = r#"
-let Foo = struct {
-  x: int
-  y: any
-}
-
-let fib = func(a: int) : int {
-    if a < 3 {
-        a
-    } else {
-        fib(a - 1) + fib(a - 2)
+# Jazz is nice
+let foo = func() : any {
+    let Foo = struct {
+        x: int
+        y: int
     }
+
+    Foo
 }
 
-fib(100)
-
-var bar: Foo = new Foo {
-  x: 100
-  y: fib(-10)
+let bar: any = new foo() {
+    x: 100 as int
+    y: 100 as int
 }
 
-fib(bar)
+bar(100, 100)
+
+bar.x = bar.x + 10
     "#;
 
     let source = Source::from("test.jazzml", test_code.lines().map(|x| x.into()).collect::<Vec<String>>());

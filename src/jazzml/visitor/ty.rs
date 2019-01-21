@@ -76,7 +76,7 @@ impl TypeNode {
       (&Id(ref a), &Id(ref b)) => a == b,
       (&Array(ref a, ref la), &Array(ref b, ref lb))                                     => a == b && (la == &None || la == lb),
       (&Func(ref a_params, ref a_retty, .., a), &Func(ref b_params, ref b_retty, .., b)) => a_params == b_params && a_retty == b_retty && a == b,
-      (&Struct(_, ref content), &Struct(_, ref content_b))                               => content == content_b,
+      (&Struct(ref content, _), &Struct(ref content_b, _))                               => content == content_b,
       _ => false,
     }
   }
@@ -98,7 +98,7 @@ impl PartialEq for TypeNode {
       (&Id(ref a),                           &Id(ref b))                           => a == b,
       (&Func(ref a_params, ref a_retty, .., a), &Func(ref b_params, ref b_retty, .., b)) => a_params == b_params && a_retty == b_retty && a == b,
 
-      (&Struct(_, ref content), &Struct(_, ref content_b))                         => content == content_b,
+      (&Struct(ref content, _), &Struct(ref content_b, _))                         => content == content_b,
 
       (&Any, _) => true,
       (_, &Any) => true,
