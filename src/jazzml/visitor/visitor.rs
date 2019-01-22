@@ -81,7 +81,7 @@ impl<'v> Visitor<'v> {
             Variable(..) => self.visit_variable(&statement.node, &statement.pos),
 
             Return(ref value) => {
-                /*if self.inside.contains(&Inside::Function) {
+                if self.inside.contains(&Inside::Function) {
                     if let Some(ref expression) = *value {
                         self.visit_expression(expression)
                     } else {
@@ -93,13 +93,7 @@ impl<'v> Visitor<'v> {
                         self.source.file,
                         statement.pos
                     ));
-                }*/
-                if let Some(ref expr) = *value {
-                    self.visit_expression(expr)
-                } else {
-                    Ok(())
                 }
-
             }
 
             Break => {
@@ -201,35 +195,46 @@ impl<'v> Visitor<'v> {
             Initialization(ref left, ref args) => {
                 let struct_type = self.type_expression(&*left)?;
 
-                if let TypeNode::Struct(ref content, _) = struct_type.node {
-                    if struct_type.mode.strong_cmp(&TypeMode::Undeclared) {
-                        for arg in args.iter() {
-                            self.visit_expression(&arg.1)?;
+                if struct_type.node != TypeNode::Any {
+                    if let TypeNode::Struct(ref content, _) = struct_type.node {
+                        if struct_type.mode.strong_cmp(&TypeMode::Undeclared) {
+                            for arg in args.iter() {
+                                self.visit_expression(&arg.1)?;
 
-                            let arg_type = self.type_expression(&arg.1)?;
+                                let arg_type = self.type_expression(&arg.1)?;
 
-                            if let Some(ref content_type) = content.get(&arg.0) {
-                                if !content_type
-                                    .node
-                                    .check_expression(&Parser::fold_expression(&arg.1)?.node)
-                                    && arg_type != **content_type
-                                {
+                                if let Some(ref content_type) = content.get(&arg.0) {
+                                    if !content_type
+                                        .node
+                                        .check_expression(&Parser::fold_expression(&arg.1)?.node)
+                                        && arg_type != **content_type
+                                    {
+                                        return Err(response!(
+                                            Wrong(format!(
+                                                "mismatched types, expected `{}` got `{}`",
+                                                content_type, arg_type
+                                            )),
+                                            self.source.file,
+                                            expression.pos
+                                        ));
+                                    }
+                                } else {
                                     return Err(response!(
-                                        Wrong(format!(
-                                            "mismatched types, expected `{}` got `{}`",
-                                            content_type, arg_type
-                                        )),
+                                        Wrong(format!("no such member `{}` in struct", arg.0)),
                                         self.source.file,
-                                        expression.pos
+                                        arg.1.pos
                                     ));
                                 }
-                            } else {
-                                return Err(response!(
-                                    Wrong(format!("no such member `{}` in struct", arg.0)),
-                                    self.source.file,
-                                    arg.1.pos
-                                ));
                             }
+                        } else {
+                            return Err(response!(
+                                Wrong(format!(
+                                    "can't initialize non-struct: `{}`",
+                                    struct_type.node
+                                )),
+                                self.source.file,
+                                expression.pos
+                            ));
                         }
                     } else {
                         return Err(response!(
@@ -241,15 +246,6 @@ impl<'v> Visitor<'v> {
                             expression.pos
                         ));
                     }
-                } else {
-                    return Err(response!(
-                        Wrong(format!(
-                            "can't initialize non-struct: `{}`",
-                            struct_type.node
-                        )),
-                        self.source.file,
-                        expression.pos
-                    ));
                 }
 
                 Ok(())
@@ -421,9 +417,7 @@ impl<'v> Visitor<'v> {
 
                     let mut actual_arg_len = args.len();
                     let mut type_buffer: Option<Type> = None;
-                    if params.contains(&Type::from(TypeNode::VaArgs)) {
-                        return Ok(());
-                    }
+
                     for (i, param_type) in params.iter().enumerate() {
                         let param_type = self.deid(param_type.clone())?;
                         let arg_type = self.type_expression(&args[i])?;
@@ -830,7 +824,23 @@ impl<'v> Visitor<'v> {
                 self.type_expression(content.first().unwrap())?,
                 Some(content.len()),
             ),
-            Initialization(ref name, _) => Type::from(self.type_expression(name)?.node),
+
+            Initialization(ref name, ref content) => {
+                let struct_type = Type::from(self.type_expression(name)?.node);
+
+                if struct_type.node == TypeNode::Any {
+                    let mut new_content = HashMap::new();
+
+                    for (name, ty) in content {
+                        new_content.insert(name.clone(), self.type_expression(ty)?);
+                    }
+
+                    Type::from(TypeNode::Struct(new_content, String::new()))
+                } else {
+                    struct_type
+                }
+            }
+
             If(_, ref body, ..) => self.type_expression(body)?,
 
             Index(ref array, ref index) => {
@@ -1327,7 +1337,7 @@ impl<'v> Visitor<'v> {
         self.symtab.assign_str(name, t)
     }
 
-    pub fn assign(&mut self, name: String, t: Type) {
+    fn assign(&mut self, name: String, t: Type) {
         self.symtab.assign(name, t)
     }
 

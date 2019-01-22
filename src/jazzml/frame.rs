@@ -126,7 +126,7 @@ impl<'a> Frame<'a> {
                         let mut temp = vec![];
                         if obj_call {
                             temp.push(self.pop());
-                        }                        
+                        }
                         for _ in 0..nargs {
                             temp.push(self.pop());
                         }
@@ -140,7 +140,7 @@ impl<'a> Frame<'a> {
                                 for (arg,arg_name) in temp.iter().zip(&func.args) {
                                     frame.locals.insert(arg_name.clone(), arg.clone());
                                 }
-                                
+
                                 frame.run_frame()
                             }
                         };
@@ -166,7 +166,7 @@ impl<'a> Frame<'a> {
 
     pub fn execute_op(&mut self) -> Option<Value> {
         let ins = self.fetch_opcode();
-        
+
         match ins {
             Opcode::PushObject(id) => {
                 self.push(Value::ObjectRef(id));
@@ -176,7 +176,8 @@ impl<'a> Frame<'a> {
                 self.push(Value::FuncRef(id));
                 None
             }
-            Opcode::Nop => {None},
+
+            Opcode::Nop => None,
 
             Opcode::PushNull => {
                 self.push(Value::Null);
@@ -270,7 +271,7 @@ impl<'a> Frame<'a> {
                 let name: Value = self.pop();
                 let name_str = name.as_str(self.vm);
                 let val = self.pop();
-                
+
                 self.locals.insert(name_str, val);
                 None
             }

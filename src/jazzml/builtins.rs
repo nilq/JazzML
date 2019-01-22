@@ -7,9 +7,9 @@ pub fn value(value: Value) -> Value {
     value
 }
 
-pub fn print(vm: &mut VirtualMachine,args: Vec<Value>) -> Value {
+pub fn print(vm: &mut VirtualMachine, args: Vec<Value>) -> Value {
     for value in args.iter() {
-        print!("{}",value.as_str(vm));
+        print!("{}", value.as_str(vm));
     }
     println!("");
     Value::Null

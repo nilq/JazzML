@@ -48,27 +48,33 @@ fn main() {
 
     match parser.parse() {
         Ok(ref ast) => {
-           
-            //let mut visitor = Visitor::new(ast, &source);
-            //visitor.assign("print".into(), Type::function(vec![Type::from(TypeNode::VaArgs);1], Type::from(TypeNode::Any), false));
-            /*match visitor.visit() {
+            let mut visitor = Visitor::new(ast, &source);
+
+            match visitor.visit() {
                 Ok(_) => (),
-                _     => return
-            }*/
-            use time::{PreciseTime};
+                _ => return,
+            }
+
+            use time::PreciseTime;
+
             let mut vm = VirtualMachine::new();
             let start = PreciseTime::now();
             let mut compiler = Compiler::new(&mut vm);
+
             compiler.compile(ast.clone());
+
             let ins = compiler.finish();
-            for (idx,ins) in ins.iter().enumerate() {
-                println!("{}: {:?}",idx,ins);
+
+            for (idx, ins) in ins.iter().enumerate() {
+                println!("{}: {:?}", idx, ins);
             }
+
             let ret = vm.run_instructions(ins);
             let end = PreciseTime::now();
             let result = start.to(end).num_milliseconds();
-            println!("{} ms",result);
-            //println!("{:?}", ret);
+
+            println!("{} ms", result);
+            println!("{:?}", ret);
         }
 
         _ => (),

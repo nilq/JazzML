@@ -33,7 +33,7 @@ impl<'l> Lexer<'l> {
             Keyword,
             &[
                 "enum", "struct", "let", "var", "func", "=>", "return", "if", "elif", "else",
-                "switch", "continue", "break", "while", "new",
+                "switch", "continue", "break", "while", "new", "as",
             ],
         )));
 

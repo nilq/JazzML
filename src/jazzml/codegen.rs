@@ -32,10 +32,14 @@ impl<'a> Compiler<'a> {
 
     pub fn compile(&mut self, ast: Vec<Statement>) {
         self.vm.init_builtins();
-        let print = self.vm.globals.get(&Value::Str("print".to_owned())).expect("print not found"); 
+        let print = self
+            .vm
+            .globals
+            .get(&Value::Str("print".to_owned()))
+            .expect("print not found");
 
         if let Value::FuncRef(id) = print {
-            self.func_def.insert("print".into(),*id);
+            self.func_def.insert("print".into(), *id);
         }
         for stmt in ast.iter() {
             self.stmt(stmt.node.clone());
@@ -52,17 +56,15 @@ impl<'a> Compiler<'a> {
         *self.labels.get_mut(label).unwrap() = Some(self.ins.len());
     }
 
-
     pub fn new_label_here(&mut self, s: String) {
         self.labels.insert(s, Some(self.ins.len()));
     }
-
 
     pub fn emit(&mut self, op: Opcode) {
         self.ins.push(UOP::Op(op));
     }
 
-    pub fn emit_goto(&mut self,lbl: &str) {
+    pub fn emit_goto(&mut self, lbl: &str) {
         self.ins.push(UOP::Goto(lbl.to_owned()));
     }
 
@@ -156,7 +158,7 @@ impl<'a> Compiler<'a> {
             ExpressionNode::Binary(lhs, op, rhs) => {
                 self.expr(rhs.node.clone());
                 self.expr(lhs.node.clone());
-                
+
                 match op {
                     Operator::Add => self.emit(Opcode::Add),
                     Operator::Sub => self.emit(Opcode::Sub),
@@ -184,8 +186,7 @@ impl<'a> Compiler<'a> {
                 self.expr(target.node.clone());
                 self.emit(Opcode::Call(args.len()));
             }
-            ExpressionNode::While(cond,block) => 
-            {
+            ExpressionNode::While(cond, block) => {
                 let while_block = self.new_empty_label();
                 let while_end = self.new_empty_label();
                 let while_start = self.new_empty_label();
@@ -200,8 +201,6 @@ impl<'a> Compiler<'a> {
                 let l = self.labels.clone();
                 self.emit(Opcode::JmpT(l.get(&while_block.clone()).unwrap().unwrap()));
                 self.label_here(&while_end);
-
-
             }
 
             ExpressionNode::If(cond, then, or) => {
@@ -218,7 +217,7 @@ impl<'a> Compiler<'a> {
                 self.label_here(&if_false);
                 if or.is_some() {
                     let r: Vec<_> = or.unwrap();
-                    for (cond,block,_) in r.iter() {
+                    for (cond, block, _) in r.iter() {
                         if cond.is_none() {
                             self.expr(block.node.clone());
                             break;
@@ -236,20 +235,18 @@ impl<'a> Compiler<'a> {
                             self.emit(Opcode::JmpT(l.get(&if_true2).unwrap().unwrap()));
                         }
                     }
-                    
                 } else {
                     self.emit(Opcode::Nop);
                 }
                 self.emit_goto(&end);
 
                 let l = self.labels.clone();
-                
+
                 self.label_here(&check);
-                
+
                 self.emit(Opcode::JmpT(l.get(&if_true).unwrap().unwrap()));
                 self.emit(Opcode::Jmp(l.get(&if_false).unwrap().unwrap()));
                 self.label_here(&end);
-
             }
 
             ExpressionNode::Function(args, _, block, _) => {

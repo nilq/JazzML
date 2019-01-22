@@ -15,7 +15,6 @@ pub enum TypeNode {
     Any,
     Char,
     Nil,
-    VaArgs,
     Id(Rc<Expression>),
     Array(Rc<Type>, Option<usize>),
     Func(Vec<Type>, Rc<Type>, Option<Rc<ExpressionNode>>, bool),
@@ -76,7 +75,7 @@ impl TypeNode {
             (&Func(ref a_params, ref a_retty, .., a), &Func(ref b_params, ref b_retty, .., b)) => {
                 a_params == b_params && a_retty == b_retty && a == b
             }
-            (&Struct(_, ref content), &Struct(_, ref content_b)) => content == content_b,
+            (&Struct(ref content, _), &Struct(ref content_b, _)) => content == content_b,
             _ => false,
         }
     }
@@ -100,7 +99,7 @@ impl PartialEq for TypeNode {
                 a_params == b_params && a_retty == b_retty && a == b
             }
 
-            (&Struct(_, ref content), &Struct(_, ref content_b)) => content == content_b,
+            (&Struct(ref content, _), &Struct(ref content_b, _)) => content == content_b,
 
             (&Any, _) => true,
             (_, &Any) => true,
@@ -143,7 +142,6 @@ impl Display for TypeNode {
         use self::TypeNode::*;
 
         match *self {
-            VaArgs => write!(f,"VAR_ARGS"),
             Int => write!(f, "int"),
             Float => write!(f, "float"),
             Bool => write!(f, "bool"),
