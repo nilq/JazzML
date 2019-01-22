@@ -27,8 +27,9 @@ impl VirtualMachine {
     pub fn init_builtins(&mut self) {
         use super::builtins::*;
 
+        self.register_native_func(format!("concat"),&concat,-1);
         self.register_native_func(format!("print"), &print, -1);
-
+        self.register_native_func(format!("new_obj"),&new_obj,-1);
         macro_rules! register_native {
             ($($fname: ident: $argc: expr),+) => {
                 $(
@@ -51,15 +52,15 @@ impl VirtualMachine {
             shl:2,
             eq:2,
             neq:2,
-            new_obj:-1,
             gt:2,
             lt:2
         }
     }
 
     pub fn run_instructions(&mut self, ins: Vec<Opcode>) -> Value {
-        let mut frame = Frame::new(self);
-        frame.code = ins;
+        let mut locals = FnvHashMap::default();
+        let mut frame = Frame::new_with_ins(self,&mut locals,ins);
+
 
         frame.run_frame()
     }
@@ -74,8 +75,7 @@ impl VirtualMachine {
 
         match &func.kind {
             FuncKind::Interpret(ins) => {
-                let mut frame = Frame::new(self);
-                frame.locals = {
+                let mut args = {
                     let mut temp = FnvHashMap::default();
 
                     for (arg, arg_name) in args.iter().zip(&func.args) {
@@ -83,6 +83,7 @@ impl VirtualMachine {
                     }
                     temp
                 };
+                let mut frame = Frame::new(self,&mut args);
 
                 frame.code = ins.clone();
                 frame.run_frame()

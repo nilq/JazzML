@@ -8,17 +8,27 @@ use std::cell::RefCell;
 
 pub struct Frame<'a> {
     pub code: Vec<Opcode>,
-    pub locals: FnvHashMap<String, Value>,
+    pub locals: &'a mut FnvHashMap<String, Value>,
     pub pc: usize,
     pub stack: Vec<Value>,
     pub vm: &'a mut VirtualMachine,
 }
 
 impl<'a> Frame<'a> {
-    pub fn new(vm: &mut VirtualMachine) -> Frame {
+    pub fn new(vm: &'a mut VirtualMachine,locals: &'a mut FnvHashMap<String,Value>) -> Frame<'a> {
         Frame {
             code: vec![],
-            locals: FnvHashMap::default(),
+            locals,
+            pc: 0,
+            stack: vec![],
+            vm,
+        }
+    }
+
+    pub fn new_with_ins(vm: &'a mut VirtualMachine,locals: &'a mut FnvHashMap<String,Value>,ins: Vec<Opcode>) -> Frame<'a> {
+        Frame {
+            code: ins,
+            locals,
             pc: 0,
             stack: vec![],
             vm,
@@ -71,7 +81,7 @@ impl<'a> Frame<'a> {
 
                 match func.kind {
                     FuncKind::Interpret(code) => {
-                        let mut frame = Frame::new(self.vm);
+                        let mut frame = Frame::new(self.vm,self.locals);
                         frame.locals.insert("__this__".into(), Value::ObjectRef(id));
                         for (arg, arg_name) in stack.iter().zip(&func.args) {
                             frame.locals.insert(arg_name.to_string(), arg.clone());
@@ -108,10 +118,10 @@ impl<'a> Frame<'a> {
                         let ret = match func.kind.clone() {
                             FuncKind::Native(f) => f(self.vm,temp),
                             FuncKind::Interpret(v) => {
-                                let mut frame = Frame::new(self.vm);
+                                let mut frame = Frame::new(self.vm,self.locals);
                                 frame.code = v;
                                 frame.stack = temp;
-                                frame.locals = self.locals.clone();
+
                                 frame.run_frame()
                             }
                         };
@@ -134,9 +144,9 @@ impl<'a> Frame<'a> {
                         let ret = match &func.kind {
                             FuncKind::Native(f) => f(self.vm,temp),
                             FuncKind::Interpret(v) => {
-                                let mut frame = Frame::new(self.vm);
+                                let mut frame = Frame::new(self.vm,self.locals);
                                 frame.code = v.clone();
-                                frame.locals = self.locals.clone();
+
                                 for (arg,arg_name) in temp.iter().zip(&func.args) {
                                     frame.locals.insert(arg_name.clone(), arg.clone());
                                 }
@@ -277,6 +287,7 @@ impl<'a> Frame<'a> {
             }
 
             Opcode::StoreField => {
+
                 let target = self.pop();
                 let key = self.pop();
                 let val = self.pop();

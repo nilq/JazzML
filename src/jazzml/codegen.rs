@@ -12,6 +12,8 @@ pub struct Compiler<'a> {
     pub func_def: FnvHashMap<String, usize>,
     pub vm: &'a mut VirtualMachine,
     pub labels: FnvHashMap<String, Option<usize>>,
+    end_label: Option<String>,
+
 }
 
 #[derive(Clone, Debug)]
@@ -27,6 +29,8 @@ impl<'a> Compiler<'a> {
             func_def: FnvHashMap::default(),
             vm: vm,
             labels: FnvHashMap::default(),
+            end_label: None,
+
         }
     }
 
@@ -41,9 +45,21 @@ impl<'a> Compiler<'a> {
         if let Value::FuncRef(id) = print {
             self.func_def.insert("print".into(), *id);
         }
+
+        let obj = self
+            .vm
+            .globals
+            .get(&Value::Str("new_obj".to_owned()))
+            .expect("new_obj not found");
+
+        if let Value::FuncRef(id) = obj {
+            self.func_def.insert("new_obj".into(), *id);
+        }
         for stmt in ast.iter() {
             self.stmt(stmt.node.clone());
         }
+        self.emit(Opcode::PushNull);
+        self.emit(Opcode::Ret);
     }
 
     pub fn new_empty_label(&mut self) -> String {
@@ -126,13 +142,32 @@ impl<'a> Compiler<'a> {
                 self.emit(Opcode::PushStr(name));
                 self.emit(Opcode::StoreLocal);
             }
+            StatementNode::Break => {
+                let end = self.end_label.clone().unwrap().clone();
+
+                self.emit_goto(&end);
+
+            }
             StatementNode::Assignment(to, val) => {
-                self.expr(val.node);
-                if let ExpressionNode::Identifier(ref name) = to.node.clone() {
-                    self.emit(Opcode::PushStr(name.to_owned()));
+                if let ExpressionNode::Index(a,b) = to.node.clone() {
+                    self.expr(val.node);
+                    match b.node {
+                        ExpressionNode::Identifier(ref name) => self.emit(Opcode::PushStr(name.to_owned())),
+                        ExpressionNode::Index(_,_) => self.expr(b.node.clone()),
+                        _ => unimplemented!()
+                    };
+
+                    self.expr(a.node.clone());
+                    self.emit(Opcode::StoreField);
+                } else {
+                    self.expr(val.node);
+                    if let ExpressionNode::Identifier(ref name) = to.node.clone() {
+                        self.emit(Opcode::PushStr(name.to_owned()));
+                    }
+                    self.emit(Opcode::StoreLocal);
                 }
 
-                self.emit(Opcode::StoreLocal);
+
             }
             _ => unimplemented!(),
         }
@@ -155,6 +190,7 @@ impl<'a> Compiler<'a> {
                 self.emit(Opcode::PushStr(name));
                 self.emit(Opcode::LoadLocal);
             }
+
             ExpressionNode::Binary(lhs, op, rhs) => {
                 self.expr(rhs.node.clone());
                 self.expr(lhs.node.clone());
@@ -179,6 +215,17 @@ impl<'a> Compiler<'a> {
                 }
             }
 
+            ExpressionNode::Index(a,b) => {
+                match b.node.clone() {
+                    ExpressionNode::Identifier(ref name) => self.emit(Opcode::PushStr(name.to_owned())),
+                    ExpressionNode::Index(_,_) => self.expr(b.node.clone()),
+                    _ => unimplemented!()
+                };
+                self.expr(a.node.clone());
+                self.emit(Opcode::LoadField);
+            }
+
+
             ExpressionNode::Call(target, args) => {
                 for arg in args.iter().rev() {
                     self.expr(arg.node.clone());
@@ -190,7 +237,7 @@ impl<'a> Compiler<'a> {
                 let while_block = self.new_empty_label();
                 let while_end = self.new_empty_label();
                 let while_start = self.new_empty_label();
-
+                self.end_label = Some(while_end.clone());
                 self.emit_goto(&while_start);
 
                 self.label_here(&while_block);
@@ -272,8 +319,9 @@ impl<'a> Compiler<'a> {
                 let id = self.vm.register_predefiend_func(func);
                 self.emit(Opcode::PushFunc(id));
             }
+            ExpressionNode::Cast(e,_) => {self.expr(e.node.clone())}
 
-            _ => unimplemented!(),
+            v => panic!("{:?}",v),
         }
     }
 }

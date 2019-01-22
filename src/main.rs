@@ -49,7 +49,8 @@ fn main() {
     match parser.parse() {
         Ok(ref ast) => {
             let mut visitor = Visitor::new(ast, &source);
-
+            visitor.assign_str("print",Type::function(vec![Type::from(TypeNode::Any)],Type::from(TypeNode::Any),false));
+            visitor.assign_str("new_obj",Type::function(vec![],Type::from(TypeNode::Any),false));
             match visitor.visit() {
                 Ok(_) => (),
                 _ => return,
@@ -64,17 +65,12 @@ fn main() {
             compiler.compile(ast.clone());
 
             let ins = compiler.finish();
-
-            for (idx, ins) in ins.iter().enumerate() {
-                println!("{}: {:?}", idx, ins);
-            }
-
             let ret = vm.run_instructions(ins);
             let end = PreciseTime::now();
             let result = start.to(end).num_milliseconds();
 
-            println!("{} ms", result);
-            println!("{:?}", ret);
+            println!("RESULT: {} in {} ms", ret.as_str(&mut vm),result);
+
         }
 
         _ => (),

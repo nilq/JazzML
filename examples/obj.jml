@@ -1,0 +1,14 @@
+let Point = func(x: any,y: any) : any {
+    var point = new_obj()
+    point.x = x
+    point.y = y
+    return point
+}
+
+
+var point = Point(2,3)
+
+print("x:")
+print(point.x)
+print("y:")
+print(point.y)

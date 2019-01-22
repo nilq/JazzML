@@ -7,6 +7,14 @@ pub fn value(value: Value) -> Value {
     value
 }
 
+pub fn concat(vm: &mut VirtualMachine,args: Vec<Value>) -> Value {
+    let mut buff = String::new();
+    for value in args.iter() {
+        buff.push_str(&value.as_str(vm));
+    }
+    return Value::Str(buff);
+}
+
 pub fn print(vm: &mut VirtualMachine, args: Vec<Value>) -> Value {
     for value in args.iter() {
         print!("{}", value.as_str(vm));

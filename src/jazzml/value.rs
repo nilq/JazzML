@@ -93,7 +93,7 @@ impl Value {
             Value::Int(i) => i.to_string(),
             Value::Float(bits) => f64::from_bits(*bits).to_string(),
             Value::Array(arr) => format!("{:?}", arr),
-            Value::Null => "".into(),
+            Value::Null => "null".into(),
             _ => unimplemented!(),
         }
     }

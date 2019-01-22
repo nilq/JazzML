@@ -81,19 +81,13 @@ impl<'v> Visitor<'v> {
             Variable(..) => self.visit_variable(&statement.node, &statement.pos),
 
             Return(ref value) => {
-                if self.inside.contains(&Inside::Function) {
+
                     if let Some(ref expression) = *value {
                         self.visit_expression(expression)
                     } else {
                         Ok(())
                     }
-                } else {
-                    return Err(response!(
-                        Wrong("can't return outside of function"),
-                        self.source.file,
-                        statement.pos
-                    ));
-                }
+
             }
 
             Break => {
@@ -1058,8 +1052,8 @@ impl<'v> Visitor<'v> {
                                 // real hack here
                                 if a == b {
                                     match a {
-                                        TypeNode::Float | TypeNode::Int => match b {
-                                            TypeNode::Float | TypeNode::Int => {
+                                        TypeNode::Float | TypeNode::Int  => match b {
+                                            TypeNode::Float | TypeNode::Int  => {
                                                 Type::from(a.clone())
                                             }
 
@@ -1333,11 +1327,11 @@ impl<'v> Visitor<'v> {
         }
     }
 
-    fn assign_str(&mut self, name: &str, t: Type) {
+    pub fn assign_str(&mut self, name: &str, t: Type) {
         self.symtab.assign_str(name, t)
     }
 
-    fn assign(&mut self, name: String, t: Type) {
+    pub fn assign(&mut self, name: String, t: Type) {
         self.symtab.assign(name, t)
     }
 
