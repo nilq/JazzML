@@ -1,0 +1,11 @@
+let add_10 = func(a: int) : int {
+  return a + 10
+}
+
+let apply = func(f: func(int) -> int, a: int) : int {
+  return f(a)
+}
+
+var foo = apply(add_10, 100)
+
+print(foo)

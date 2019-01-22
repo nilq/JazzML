@@ -658,7 +658,7 @@ impl<'p> Parser<'p> {
                         }
                     }
 
-                    let return_type = if self.current_lexeme() == ":" {
+                    let return_type = if self.current_lexeme() == "->" {
                         self.next()?;
 
                         self.parse_type()?
