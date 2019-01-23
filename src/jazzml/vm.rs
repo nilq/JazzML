@@ -139,18 +139,19 @@ impl VirtualMachine {
         name: String,
         f: &'static T,
         nargs: i32,
-    ) {
+    ) -> usize {
         let func = Function {
             kind: FuncKind::Native(f),
             nargs,
             args: vec![],
         };
-
+        let id = self.fid;
         self.globals
             .insert(Value::Str(name), Value::FuncRef(self.fid));
         self.functions
             .insert(self.fid, FuncRef::new(RefCell::new(func)));
         self.fid += 1;
+        id
     }
 
     pub fn get_object(&self, s: &usize) -> &ObjectRef {

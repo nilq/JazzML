@@ -1,0 +1,9 @@
+var window = glfwNewWindow("Hello,world!",640,480)
+
+
+while glfwWindowShouldNotClose(window) {
+    glfwSwapBuffers(window)
+    glfwPollEvents()
+}
+
+glfwTerminate()

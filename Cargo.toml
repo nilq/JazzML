@@ -9,6 +9,8 @@ fnv     = "1.0.6"
 rand    = "0.6.4"
 colored = "1.7.0"
 time = "0.1.42"
+glfw = "0.26.1"
+
 [profile.release]
 lto   = true
 panic = "abort"
