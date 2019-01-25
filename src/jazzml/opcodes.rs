@@ -10,6 +10,7 @@ pub enum Opcode {
     Pop,
 
     Amake(usize),
+    Aget,
     /// Call field of object
     CallObj(usize),
     /// Call function

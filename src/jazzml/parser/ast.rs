@@ -44,7 +44,11 @@ pub enum ExpressionNode {
     Array(Vec<Expression>),
 
     Call(Rc<Expression>, Vec<Expression>),
-    Index(Rc<Expression>, Rc<Expression>),
+    Index(
+        Rc<Expression>,
+        Rc<Expression>,
+        bool, /* is array acces */
+    ),
 
     Cast(Rc<Expression>, Type),
     Block(Vec<Statement>),

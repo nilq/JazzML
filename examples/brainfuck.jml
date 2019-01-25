@@ -1,0 +1,73 @@
+var s = " +++++++++++++++++++++++++++++++++++++++++++++
+ +++++++++++++++++++++++++++.+++++++++++++++++
+ ++++++++++++.+++++++..+++.-------------------
+ ---------------------------------------------
+ ---------------.+++++++++++++++++++++++++++++
+ ++++++++++++++++++++++++++.++++++++++++++++++
+ ++++++.+++.------.--------.------------------
+ ---------------------------------------------
+ ----.-----------------------."
+
+var ptr = 0
+
+var memory = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+var _i = 0
+var length = array_len(memory)
+
+var cs = chars(s)
+
+var c = 0
+var len = array_len(cs) as int
+var i = 0
+
+
+while i < len {
+    if cs[i] == ">" {
+        if ptr == length {
+            ptr = 0
+        } else {
+            ptr = ptr + 1
+        }
+    } elif cs[i] == "<" {
+        if ptr == 0 {
+            ptr = length - 1
+        } else {
+            ptr = ptr - 1
+        }
+    } elif cs[i] == "+" {
+        memory[ptr] = memory[ptr] + 1
+        
+    } elif cs[i] == "-" {
+        memory[ptr] = memory[ptr] - 1
+    } elif cs[i] == "." {
+        var chr = memory[ptr]
+        putc(chr)
+    } elif cs[i] == "," {
+        var cr = getc()
+        memory[ptr] = cr
+    } elif cs[i] == "[" {
+        if memory[ptr] == 0 {
+            i = i + 1
+            while c > 0 or cs[i] != "]" {
+                if cs[i] == "[" {
+                    c = c + 1
+                } elif cs[i] == "]" { 
+                    c = c - 1
+                }
+                i = i + 1
+            }
+        } else {}
+    } elif cs[i] == "]" {
+        i = i - 1
+        while c> 0 or cs[i] != "[" {
+            if cs[i] == "]" {
+                c = c + 1
+            } elif cs[i] == "[" {
+                c = c - 1
+            } else {}
+            i = i - 1
+        }
+    } else {}
+    i = i + 1
+}
+

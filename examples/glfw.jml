@@ -1,4 +1,4 @@
-var window = glfwNewWindow("Hello,world!",640,480)
+var window = glfwNewWindow("Hello,world!",1280,720)
 
 
 while glfwWindowShouldNotClose(window) {

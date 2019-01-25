@@ -41,7 +41,7 @@ pub enum Value {
     Float(u64),
     Bool(bool),
     Str(String),
-    Array(Vec<Value>),
+    Array(usize),
     ObjectRef(usize),
     FuncRef(usize),
     Null,
@@ -92,12 +92,17 @@ impl Value {
             Value::Str(s) => s.to_string(),
             Value::Int(i) => i.to_string(),
             Value::Float(bits) => f64::from_bits(*bits).to_string(),
-            Value::Array(arr) => format!("{:?}", arr),
+            Value::Array(_arr) => format!("array"),
             Value::Null => "null".into(),
+            Value::ObjectRef(id) => {
+                let obj = _vm.get_object(&id).borrow().clone();
+                return format!("{:?}", obj.map);
+            }
+            Value::Bool(b) => format!("{}", b),
             _ => unimplemented!(),
         }
     }
-    pub fn as_object_id(&mut self) -> usize {
+    pub fn as_object_id(&self) -> usize {
         match self {
             Value::ObjectRef(id) => *id,
             _ => unimplemented!(),
@@ -128,10 +133,23 @@ impl Object {
     }
 
     pub fn load(&self, key: &Value) -> &Value {
-        self.map.get(key).unwrap()
+        self.map.get(key).unwrap_or(&Value::Null)
     }
 
     pub fn store(&mut self, key: Value, obj: Value) {
         self.map.insert(key, obj);
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ArrayRef {
+    pub vec: Ref<Vec<Value>>,
+}
+
+impl ArrayRef {
+    pub fn new() -> ArrayRef {
+        Self {
+            vec: Ref::new(RefCell::new(vec![])),
+        }
     }
 }

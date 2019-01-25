@@ -511,7 +511,7 @@ impl<'p> Parser<'p> {
                     let position = expression.pos.clone();
 
                     let index = Expression::new(
-                        ExpressionNode::Index(Rc::new(expression), Rc::new(expr)),
+                        ExpressionNode::Index(Rc::new(expression), Rc::new(expr), true),
                         self.span_from(position),
                     );
 
@@ -527,7 +527,7 @@ impl<'p> Parser<'p> {
                     let position = expression.pos.clone();
 
                     let index = Expression::new(
-                        ExpressionNode::Index(Rc::new(expression), Rc::new(id)),
+                        ExpressionNode::Index(Rc::new(expression), Rc::new(id), false),
                         self.span_from(position),
                     );
 

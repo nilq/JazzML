@@ -1,6 +1,6 @@
 use super::frame::Frame;
 use super::opcodes::Opcode;
-use super::value::{FuncKind, FuncRef, Function, Object, ObjectRef, Value};
+use super::value::{ArrayRef, FuncKind, FuncRef, Function, Object, ObjectRef, Value};
 
 use fnv::FnvHashMap;
 use std::cell::RefCell;
@@ -9,8 +9,10 @@ pub struct VirtualMachine {
     pub functions: FnvHashMap<usize, FuncRef>,
     pub globals: FnvHashMap<Value, Value>,
     pub pool: FnvHashMap<usize, ObjectRef>,
+    pub arrays: FnvHashMap<usize, ArrayRef>,
     fid: usize,
     oid: usize,
+    aid: usize,
 }
 
 impl VirtualMachine {
@@ -19,17 +21,25 @@ impl VirtualMachine {
             functions: FnvHashMap::default(),
             globals: FnvHashMap::default(),
             pool: FnvHashMap::default(),
+            arrays: FnvHashMap::default(),
             fid: 0,
             oid: 0,
+            aid: 0,
         }
     }
 
     pub fn init_builtins(&mut self) {
         use super::builtins::*;
-
-        self.register_native_func(format!("concat"),&concat,-1);
+        self.register_native_func(format!("array_len"), &arr_len, 1);
+        self.register_native_func(format!("chars"), &chars, 1);
+        self.register_native_func(format!("array_pop"), &arr_pop, 1);
+        self.register_native_func(format!("array_push"), &arr_push, 2);
+        self.register_native_func(format!("concat"), &concat, -1);
         self.register_native_func(format!("print"), &print, -1);
-        self.register_native_func(format!("new_obj"),&new_obj,-1);
+        self.register_native_func(format!("new_obj"), &new_obj, -1);
+        self.register_native_func(format!("getc"), &get_char, -1);
+        self.register_native_func(format!("putc"), &put_char, -1);
+        self.register_native_func(format!("println"), &println, -1);
         macro_rules! register_native {
             ($($fname: ident: $argc: expr),+) => {
                 $(
@@ -59,8 +69,7 @@ impl VirtualMachine {
 
     pub fn run_instructions(&mut self, ins: Vec<Opcode>) -> Value {
         let mut locals = FnvHashMap::default();
-        let mut frame = Frame::new_with_ins(self,&mut locals,ins);
-
+        let mut frame = Frame::new_with_ins(self, &mut locals, ins);
 
         frame.run_frame()
     }
@@ -83,7 +92,7 @@ impl VirtualMachine {
                     }
                     temp
                 };
-                let mut frame = Frame::new(self,&mut args);
+                let mut frame = Frame::new(self, &mut args);
 
                 frame.code = ins.clone();
                 frame.run_frame()

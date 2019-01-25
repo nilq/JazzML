@@ -15,7 +15,7 @@ pub struct Frame<'a> {
 }
 
 impl<'a> Frame<'a> {
-    pub fn new(vm: &'a mut VirtualMachine,locals: &'a mut FnvHashMap<String,Value>) -> Frame<'a> {
+    pub fn new(vm: &'a mut VirtualMachine, locals: &'a mut FnvHashMap<String, Value>) -> Frame<'a> {
         Frame {
             code: vec![],
             locals,
@@ -25,7 +25,11 @@ impl<'a> Frame<'a> {
         }
     }
 
-    pub fn new_with_ins(vm: &'a mut VirtualMachine,locals: &'a mut FnvHashMap<String,Value>,ins: Vec<Opcode>) -> Frame<'a> {
+    pub fn new_with_ins(
+        vm: &'a mut VirtualMachine,
+        locals: &'a mut FnvHashMap<String, Value>,
+        ins: Vec<Opcode>,
+    ) -> Frame<'a> {
         Frame {
             code: ins,
             locals,
@@ -81,7 +85,7 @@ impl<'a> Frame<'a> {
 
                 match func.kind {
                     FuncKind::Interpret(code) => {
-                        let mut frame = Frame::new(self.vm,self.locals);
+                        let mut frame = Frame::new(self.vm, self.locals);
                         frame.locals.insert("__this__".into(), Value::ObjectRef(id));
                         for (arg, arg_name) in stack.iter().zip(&func.args) {
                             frame.locals.insert(arg_name.to_string(), arg.clone());
@@ -211,12 +215,19 @@ impl<'a> Frame<'a> {
                 None
             }
             Opcode::Amake(arr_len) => {
-                let mut temp = vec![];
-                for _ in 0..arr_len {
-                    temp.push(self.pop());
+                let obj_id = self.vm.new_object();
+
+                let mut map = FnvHashMap::default();
+                for i in 0..arr_len {
+                    let value = self.pop();
+                    map.insert(Value::Int(i as i64), value);
+                }
+                {
+                    let mut obj = self.vm.get_object(&obj_id).borrow_mut();
+                    obj.map = map;
                 }
 
-                self.push(Value::Array(temp));
+                self.push(Value::ObjectRef(obj_id));
                 None
             }
 
@@ -287,7 +298,6 @@ impl<'a> Frame<'a> {
             }
 
             Opcode::StoreField => {
-
                 let target = self.pop();
                 let key = self.pop();
                 let val = self.pop();
@@ -298,6 +308,7 @@ impl<'a> Frame<'a> {
                         let object: &mut Object = &mut self.vm.get_object(id).borrow_mut();
                         object.store(key.clone(), val);
                     }
+
                     _ => panic!("Can't load field on `{:?}`", target),
                 }
                 None
@@ -305,6 +316,7 @@ impl<'a> Frame<'a> {
             Opcode::LoadField => {
                 let target = self.pop();
                 let key = self.pop();
+
                 let target: &Value = &target;
                 let key: &Value = &key;
                 let result = match target {
@@ -472,6 +484,7 @@ impl<'a> Frame<'a> {
                 self.vm.globals.insert(key.clone(), val);
                 None
             }
+            Opcode::Aget => unimplemented!(),
             Opcode::TailCall(_) => panic!("Taill call not implemented"),
         }
     }

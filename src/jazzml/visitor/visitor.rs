@@ -81,13 +81,11 @@ impl<'v> Visitor<'v> {
             Variable(..) => self.visit_variable(&statement.node, &statement.pos),
 
             Return(ref value) => {
-
-                    if let Some(ref expression) = *value {
-                        self.visit_expression(expression)
-                    } else {
-                        Ok(())
-                    }
-
+                if let Some(ref expression) = *value {
+                    self.visit_expression(expression)
+                } else {
+                    Ok(())
+                }
             }
 
             Break => {
@@ -364,27 +362,28 @@ impl<'v> Visitor<'v> {
             }
 
             Array(ref content) => {
-                let t = self.type_expression(content.first().unwrap())?;
+                if content.len() != 0 {
+                    let t = self.type_expression(content.first().unwrap())?;
 
-                for element in content {
-                    let element_type = self.type_expression(element)?;
+                    for element in content {
+                        let element_type = self.type_expression(element)?;
 
-                    if !t
-                        .node
-                        .check_expression(&Parser::fold_expression(element)?.node)
-                        && t.node != element_type.node
-                    {
-                        return Err(response!(
-                            Wrong(format!(
-                                "mismatched types in array, expected `{}` got `{}`",
-                                t, element_type
-                            )),
-                            self.source.file,
-                            element.pos
-                        ));
+                        if !t
+                            .node
+                            .check_expression(&Parser::fold_expression(element)?.node)
+                            && t.node != element_type.node
+                        {
+                            return Err(response!(
+                                Wrong(format!(
+                                    "mismatched types in array, expected `{}` got `{}`",
+                                    t, element_type
+                                )),
+                                self.source.file,
+                                element.pos
+                            ));
+                        }
                     }
                 }
-
                 Ok(())
             }
 
@@ -589,7 +588,7 @@ impl<'v> Visitor<'v> {
                 }
             }
 
-            Index(ref left, ref index) => {
+            Index(ref left, ref index, _) => {
                 let mut left_type = self.type_expression(left)?;
 
                 if let TypeMode::Splat(_) = left_type.mode {
@@ -815,7 +814,8 @@ impl<'v> Visitor<'v> {
             Float(_) => Type::from(TypeNode::Float),
 
             Array(ref content) => Type::array(
-                self.type_expression(content.first().unwrap())?,
+                if content.len() != 0 {self.type_expression(content.first().unwrap())?} else {Type::from(TypeNode::Any)},
+                
                 Some(content.len()),
             ),
 
@@ -837,7 +837,7 @@ impl<'v> Visitor<'v> {
 
             If(_, ref body, ..) => self.type_expression(body)?,
 
-            Index(ref array, ref index) => {
+            Index(ref array, ref index, _) => {
                 let mut kind = self.type_expression(array)?;
 
                 if let TypeMode::Splat(_) = kind.mode {
@@ -1052,8 +1052,8 @@ impl<'v> Visitor<'v> {
                                 // real hack here
                                 if a == b {
                                     match a {
-                                        TypeNode::Float | TypeNode::Int  => match b {
-                                            TypeNode::Float | TypeNode::Int  => {
+                                        TypeNode::Float | TypeNode::Int => match b {
+                                            TypeNode::Float | TypeNode::Int => {
                                                 Type::from(a.clone())
                                             }
 
