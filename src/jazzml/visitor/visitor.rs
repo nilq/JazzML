@@ -1259,9 +1259,11 @@ impl<'v> Visitor<'v> {
                                 self.ensure_no_implicit(&*expr)?
                             }
 
+                            EOF => (),
+
                             _ => {
                                 return Err(response!(
-                                    Wrong("unexpected expression without context"),
+                                    Wrong(format!("unexpected expression without context: {:?}", expression.node)),
                                     self.source.file,
                                     expression.pos
                                 ));
@@ -1278,6 +1280,8 @@ impl<'v> Visitor<'v> {
             Call(..) => (),
 
             If(_, ref expr, _) | While(_, ref expr) => self.ensure_no_implicit(&*expr)?,
+
+            EOF => (),
 
             _ => {
                 return Err(response!(

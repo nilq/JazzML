@@ -1,0 +1,58 @@
+let lexer_start = func(lexer) {
+  var tokens = []
+  while lexer.pc < array_len(lexer.src) {
+    lexer_skip_white(lexer)
+
+    var ch = lexer.src[lexer.pc]
+
+    if str_is_ident_start(ch) {
+      array_push(tokens,lexer_read_ident(lexer))
+    } elif is_digit(ch) {
+      array_push(tokens,lexer_read_num(lexer))
+    } elif ch == "+" {
+      array_push(tokens,new_token("op",ch))
+      
+      lexer.pc = lexer.pc + 1
+    } elif ch == "-" {
+      array_push(tokens,new_token("op",ch))
+    } elif ch == "*" {
+      array_push(tokens,new_token("op",ch))
+    } elif ch == "/" {
+      array_push(tokens,new_token("op",ch))
+    } elif ch == "=" {
+      if lexer_peek(lexer) == "=" {
+        array_push(tokens,new_token("op","=="))
+        lexer.pc = lexer.pc + 2
+        continue
+      } else {
+        array_push(tokens,new_token("op","="))
+        lexer.pc = lexer.pc + 1
+        continue
+      }
+    } elif ch == "{" {
+      array_push(tokens,new_token("curly","{"))
+      lexer.pc = lexer.pc + 1
+    } elif ch == "}" {
+      array_push(tokens,new_token("curly","}"))
+      lexer.pc = lexer.pc + 1
+    } elif ch == "(" {
+      array_push(tokens,new_token("paren","("))
+      lexer.pc = lexer.pc + 1
+    } elif ch == ")" {
+      array_push(tokens,new_token("paren",")"))
+      lexer.pc = lexer.pc + 1
+    } elif ch == ":" {
+      array_push(tokens,new_token("symbol",":"))
+      lexer.pc = lexer.pc + 1
+    } elif ch == ";" {
+      array_push(tokens,new_token("symbol",";"))
+      lexer.pc = lexer.pc + 1
+    }
+
+
+
+  }
+
+  return tokens
+
+}
